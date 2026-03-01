@@ -37,9 +37,9 @@ export default function RegisterPage() {
 
   const fieldErrors = useMemo(() => {
     const e = {};
-    if (shopName.length < 2) e.shopName = 'T\u00ean c\u1eeda h\u00e0ng ph\u1ea3i c\u00f3 \u00edt nh\u1ea5t 2 k\u00fd t\u1ef1';
-    if (displayName.length < 2) e.displayName = 'H\u1ecd v\u00e0 t\u00ean ph\u1ea3i c\u00f3 \u00edt nh\u1ea5t 2 k\u00fd t\u1ef1';
-    if (!emailRegex.test(email)) e.email = 'Email kh\u00f4ng h\u1ee3p l\u1ec7';
+    if (shopName.length < 2) e.shopName = 'Tên cửa hàng phải có ít nhất 2 ký tự';
+    if (displayName.length < 2) e.displayName = 'Họ và tên phải có ít nhất 2 ký tự';
+    if (!emailRegex.test(email)) e.email = 'Email không hợp lệ';
     const pwResult = validatePassword(password);
     if (!pwResult.valid) {
       const failedLabels = pwResult.rules
@@ -47,7 +47,7 @@ export default function RegisterPage() {
         .map((r) => r.label);
       e.password = failedLabels.join(', ');
     }
-    if (confirmPassword !== password) e.confirmPassword = 'M\u1eadt kh\u1ea9u x\u00e1c nh\u1eadn kh\u00f4ng kh\u1edbp';
+    if (confirmPassword !== password) e.confirmPassword = 'Mật khẩu xác nhận không khớp';
     return e;
   }, [shopName, displayName, email, password, confirmPassword]);
 
@@ -94,7 +94,7 @@ export default function RegisterPage() {
       if (resendError) {
         setResendMsg(translateAuthError(resendError));
       } else {
-        setResendMsg('\u0110\u00e3 g\u1eedi l\u1ea1i email x\u00e1c th\u1ef1c!');
+        setResendMsg('Đã gửi lại email xác thực!');
       }
     } catch (err) {
       setResendMsg(translateAuthError(err));
@@ -117,18 +117,18 @@ export default function RegisterPage() {
             </div>
 
             <h2 className="text-xl font-bold text-slate-900 mb-2">
-              Ki\u1ec3m tra email c\u1ee7a b\u1ea1n!
+              Kiểm tra email của bạn!
             </h2>
             <p className="text-slate-600 text-sm mb-1">
-              Ch\u00fang t\u00f4i \u0111\u00e3 g\u1eedi link x\u00e1c th\u1ef1c \u0111\u1ebfn{' '}
+              Chúng tôi đã gửi link xác thực đến{' '}
               <span className="font-semibold text-slate-800">{email}</span>
             </p>
             <p className="text-slate-500 text-sm mb-6">
-              Click v\u00e0o link trong email \u0111\u1ec3 k\u00edch ho\u1ea1t t\u00e0i kho\u1ea3n.
+              Click vào link trong email để kích hoạt tài khoản.
             </p>
 
             <div className="text-sm text-slate-500 mb-3">
-              Kh\u00f4ng nh\u1eadn \u0111\u01b0\u1ee3c email?
+              Không nhận được email?
             </div>
 
             <button
@@ -139,11 +139,11 @@ export default function RegisterPage() {
               {resending && (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               )}
-              {resending ? '\u0110ang g\u1eedi...' : 'G\u1eedi l\u1ea1i email x\u00e1c th\u1ef1c'}
+              {resending ? 'Đang gửi...' : 'Gửi lại email xác thực'}
             </button>
 
             {resendMsg && (
-              <p className={`mt-3 text-sm ${resendMsg.includes('l\u1ed7i') || resendMsg.includes('Qu\u00e1') || resendMsg.includes('\u0111\u1ee3i') ? 'text-red-500' : 'text-green-600'}`}>
+              <p className={`mt-3 text-sm ${resendMsg.includes('lỗi') || resendMsg.includes('Quá') || resendMsg.includes('đợi') ? 'text-red-500' : 'text-green-600'}`}>
                 {resendMsg}
               </p>
             )}
@@ -152,7 +152,7 @@ export default function RegisterPage() {
               to="/login"
               className="inline-block mt-5 text-sm text-blue-600 hover:text-blue-500 transition font-medium"
             >
-              Quay l\u1ea1i \u0111\u0103ng nh\u1eadp
+              Quay lại đăng nhập
             </Link>
           </div>
         </div>
@@ -173,10 +173,10 @@ export default function RegisterPage() {
 
           {/* Headline */}
           <h1 className="text-3xl xl:text-4xl font-bold text-slate-900 leading-tight mb-4">
-            Qu\u1ea3n l\u00fd b\u00e1n h\u00e0ng th\u00f4ng minh v\u1edbi AI
+            Quản lý bán hàng thông minh với AI
           </h1>
           <p className="text-slate-600 text-lg mb-10">
-            T\u1ef1 \u0111\u1ed9ng h\u00f3a quy tr\u00ecnh, t\u0103ng doanh thu v\u00e0 ti\u1ebft ki\u1ec7m th\u1eddi gian m\u1ed7i ng\u00e0y.
+            Tự động hóa quy trình, tăng doanh thu và tiết kiệm thời gian mỗi ngày.
           </p>
 
           {/* Feature bullets */}
@@ -188,8 +188,8 @@ export default function RegisterPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 text-sm">Tr\u1ea3 l\u1eddi t\u1ef1 \u0111\u1ed9ng 24/7</h3>
-                <p className="text-slate-500 text-sm mt-0.5">AI chatbot h\u1ed7 tr\u1ee3 kh\u00e1ch h\u00e0ng m\u1ecdi l\u00fac, kh\u00f4ng c\u1ea7n ch\u1edd.</p>
+                <h3 className="font-semibold text-slate-900 text-sm">Trả lời tự động 24/7</h3>
+                <p className="text-slate-500 text-sm mt-0.5">AI chatbot hỗ trợ khách hàng mọi lúc, không cần chờ.</p>
               </div>
             </div>
 
@@ -200,8 +200,8 @@ export default function RegisterPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 text-sm">Ph\u00e2n t\u00edch doanh thu chi ti\u1ebft</h3>
-                <p className="text-slate-500 text-sm mt-0.5">Dashboard tr\u1ef1c quan, bi\u1ebft r\u00f5 xu h\u01b0\u1edbng kinh doanh.</p>
+                <h3 className="font-semibold text-slate-900 text-sm">Phân tích doanh thu chi tiết</h3>
+                <p className="text-slate-500 text-sm mt-0.5">Dashboard trực quan, biết rõ xu hướng kinh doanh.</p>
               </div>
             </div>
 
@@ -212,8 +212,8 @@ export default function RegisterPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 text-sm">B\u1ea3o m\u1eadt cao c\u1ea5p</h3>
-                <p className="text-slate-500 text-sm mt-0.5">D\u1eef li\u1ec7u \u0111\u01b0\u1ee3c m\u00e3 h\u00f3a v\u00e0 b\u1ea3o v\u1ec7 to\u00e0n di\u1ec7n.</p>
+                <h3 className="font-semibold text-slate-900 text-sm">Bảo mật cao cấp</h3>
+                <p className="text-slate-500 text-sm mt-0.5">Dữ liệu được mã hóa và bảo vệ toàn diện.</p>
               </div>
             </div>
           </div>
@@ -230,10 +230,10 @@ export default function RegisterPage() {
 
           {/* Heading */}
           <h2 className="text-2xl font-bold text-slate-900 mb-1">
-            T\u1ea1o t\u00e0i kho\u1ea3n
+            Tạo tài khoản
           </h2>
           <p className="text-slate-500 text-sm mb-7">
-            D\u00f9ng th\u1eed mi\u1ec5n ph\u00ed 14 ng\u00e0y, kh\u00f4ng c\u1ea7n th\u1ebb.
+            Dùng thử miễn phí 14 ngày, không cần thẻ.
           </p>
 
           {/* Global error */}
@@ -244,10 +244,10 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* T\u00ean c\u1eeda h\u00e0ng */}
+            {/* Tên cửa hàng */}
             <div>
               <label htmlFor="shopName" className="block text-sm font-medium text-slate-700 mb-1.5">
-                T\u00ean c\u1eeda h\u00e0ng <span className="text-red-400">*</span>
+                Tên cửa hàng <span className="text-red-400">*</span>
               </label>
               <input
                 id="shopName"
@@ -261,17 +261,17 @@ export default function RegisterPage() {
                     ? 'border-red-400 focus:border-red-500'
                     : 'border-slate-300 focus:border-blue-500'
                 }`}
-                placeholder="V\u00ed d\u1ee5: Shop Th\u1eddi Trang ABC"
+                placeholder="Ví dụ: Shop Thời Trang ABC"
               />
               {touched.shopName && fieldErrors.shopName && (
                 <p className="text-xs text-red-500 mt-1">{fieldErrors.shopName}</p>
               )}
             </div>
 
-            {/* H\u1ecd v\u00e0 t\u00ean */}
+            {/* Họ và tên */}
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-slate-700 mb-1.5">
-                H\u1ecd v\u00e0 t\u00ean <span className="text-red-400">*</span>
+                Họ và tên <span className="text-red-400">*</span>
               </label>
               <input
                 id="displayName"
@@ -285,7 +285,7 @@ export default function RegisterPage() {
                     ? 'border-red-400 focus:border-red-500'
                     : 'border-slate-300 focus:border-blue-500'
                 }`}
-                placeholder="Nguy\u1ec5n V\u0103n A"
+                placeholder="Nguyễn Văn A"
               />
               {touched.displayName && fieldErrors.displayName && (
                 <p className="text-xs text-red-500 mt-1">{fieldErrors.displayName}</p>
@@ -316,11 +316,11 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* M\u1eadt kh\u1ea9u */}
+            {/* Mật khẩu */}
             <div>
               <PasswordInput
                 id="password"
-                label={<>M\u1eadt kh\u1ea9u <span className="text-red-400">*</span></>}
+                label={<>Mật khẩu <span className="text-red-400">*</span></>}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onBlur={() => handleBlur('password')}
@@ -331,11 +331,11 @@ export default function RegisterPage() {
               <PasswordStrengthMeter password={password} />
             </div>
 
-            {/* X\u00e1c nh\u1eadn m\u1eadt kh\u1ea9u */}
+            {/* Xác nhận mật khẩu */}
             <div>
               <PasswordInput
                 id="confirmPassword"
-                label={<>X\u00e1c nh\u1eadn m\u1eadt kh\u1ea9u <span className="text-red-400">*</span></>}
+                label={<>Xác nhận mật khẩu <span className="text-red-400">*</span></>}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 onBlur={() => handleBlur('confirmPassword')}
@@ -351,14 +351,14 @@ export default function RegisterPage() {
                       <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-xs text-green-600 font-medium">Kh\u1edbp</span>
+                      <span className="text-xs text-green-600 font-medium">Khớp</span>
                     </>
                   ) : (
                     <>
                       <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      <span className="text-xs text-red-500 font-medium">Kh\u00f4ng kh\u1edbp</span>
+                      <span className="text-xs text-red-500 font-medium">Không khớp</span>
                     </>
                   )}
                 </div>
@@ -375,13 +375,13 @@ export default function RegisterPage() {
                 className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30"
               />
               <label htmlFor="agreeTerms" className="text-sm text-slate-600 leading-snug">
-                T\u00f4i \u0111\u1ed3ng \u00fd v\u1edbi{' '}
+                Tôi đồng ý với{' '}
                 <Link to="/terms" className="text-blue-600 hover:text-blue-500 underline transition">
-                  \u0110i\u1ec1u kho\u1ea3n d\u1ecbch v\u1ee5
+                  Điều khoản dịch vụ
                 </Link>{' '}
-                v\u00e0{' '}
+                và{' '}
                 <Link to="/privacy" className="text-blue-600 hover:text-blue-500 underline transition">
-                  Ch\u00ednh s\u00e1ch b\u1ea3o m\u1eadt
+                  Chính sách bảo mật
                 </Link>
               </label>
             </div>
@@ -397,14 +397,14 @@ export default function RegisterPage() {
               {loading && (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               )}
-              {loading ? '\u0110ang t\u1ea1o t\u00e0i kho\u1ea3n...' : '\u0110\u0103ng k\u00fd mi\u1ec5n ph\u00ed'}
+              {loading ? 'Đang tạo tài khoản...' : 'Đăng ký miễn phí'}
             </button>
           </form>
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px bg-slate-200" />
-            <span className="text-xs text-slate-400 font-medium">ho\u1eb7c</span>
+            <span className="text-xs text-slate-400 font-medium">hoặc</span>
             <div className="flex-1 h-px bg-slate-200" />
           </div>
 
@@ -432,14 +432,14 @@ export default function RegisterPage() {
                 fill="#EA4335"
               />
             </svg>
-            Ti\u1ebfp t\u1ee5c v\u1edbi Google
+            Tiếp tục với Google
           </button>
 
           {/* Login link */}
           <p className="text-center text-sm text-slate-500 mt-7">
-            \u0110\u00e3 c\u00f3 t\u00e0i kho\u1ea3n?{' '}
+            Đã có tài khoản?{' '}
             <Link to="/login" className="text-blue-600 hover:text-blue-500 transition font-medium">
-              \u0110\u0103ng nh\u1eadp \u2192
+              Đăng nhập &rarr;
             </Link>
           </p>
         </div>
