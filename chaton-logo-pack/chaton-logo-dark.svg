@@ -1,0 +1,20 @@
+<svg viewBox="0 0 360 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Chat bubble icon -->
+  <rect x="2" y="6" width="52" height="42" rx="14" fill="url(#iconGradDark)"/>
+  <circle cx="19" cy="27" r="4" fill="#ffffff"/>
+  <circle cx="33" cy="27" r="4" fill="#ffffff" opacity="0.7"/>
+  <circle cx="47" cy="27" r="4" fill="#ffffff" opacity="0.4"/>
+  <!-- Bubble tail -->
+  <path d="M12 48L6 58L22 48" fill="url(#iconGradDark)"/>
+  <!-- Power indicator -->
+  <circle cx="50" cy="10" r="6" fill="#22d3ee"/>
+  <path d="M48 10L50 8L50 10.5H52L50 12.5L50 10H48Z" fill="#fff"/>
+  <!-- Text: ChatOn -->
+  <text x="72" y="40" font-family="Outfit, sans-serif" font-weight="800" font-size="38" fill="#f1f5f9">Chat<tspan fill="#60a5fa">On</tspan></text>
+  <defs>
+    <linearGradient id="iconGradDark" x1="2" y1="6" x2="54" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+</svg>
