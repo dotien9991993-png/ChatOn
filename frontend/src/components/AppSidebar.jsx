@@ -52,7 +52,7 @@ export default function AppSidebar({ collapsed, onToggleCollapse }) {
         ${collapsed ? 'w-[64px]' : 'w-[240px]'}
       `}
       style={{
-        background: 'linear-gradient(180deg, #1E3A5F 0%, #2D5A87 100%)',
+        background: 'linear-gradient(180deg, #1E3A8A 0%, #1D4ED8 50%, #2563EB 100%)',
       }}
     >
       {/* Logo + Brand */}

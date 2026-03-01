@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import * as api from '../services/api';
 
-const COLORS = ['#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981'];
+const COLORS = ['#2563EB', '#60A5FA', '#22D3EE', '#f59e0b', '#8b5cf6', '#10b981'];
 const STATUS_COLORS = { active: '#10b981', resolved: '#6b7280', spam: '#ef4444' };
 const STATUS_LABELS = { active: 'Đang hoạt động', resolved: 'Đã xử lý', spam: 'Spam' };
 
@@ -220,12 +220,12 @@ export default function DashboardPage() {
                 <AreaChart data={charts.daily}>
                   <defs>
                     <linearGradient id="gradInbound" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#2563EB" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gradOutbound" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#22D3EE" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#22D3EE" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -233,8 +233,8 @@ export default function DashboardPage() {
                   <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Area type="monotone" dataKey="inbound" name="Khách gửi" stroke="#06b6d4" fill="url(#gradInbound)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="outbound" name="Phản hồi" stroke="#8b5cf6" fill="url(#gradOutbound)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="inbound" name="Khách gửi" stroke="#2563EB" fill="url(#gradInbound)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="outbound" name="Phản hồi" stroke="#22D3EE" fill="url(#gradOutbound)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                   <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar yAxisId="left" dataKey="orders" name="Đơn hàng" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="left" dataKey="orders" name="Đơn hàng" fill="#2563EB" radius={[4, 4, 0, 0]} />
                   <Bar yAxisId="right" dataKey="revenue" name="Doanh thu (đ)" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
