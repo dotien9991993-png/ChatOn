@@ -193,6 +193,72 @@ export default function AISettings({ settings, onSettingsChange, showToast }) {
           </button>
         </div>
 
+        {/* Tin chào mừng */}
+        <div className="border-t border-slate-200 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-slate-800">Tin chào mừng</h3>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.welcome_message_enabled || false}
+                onChange={(e) => updateField('welcome_message_enabled', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-300 peer-checked:bg-blue-600 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+            </label>
+          </div>
+          <p className="text-[11px] text-slate-500 mb-2">Tự động gửi tin nhắn chào khi khách nhắn lần đầu</p>
+          {form.welcome_message_enabled && (
+            <div className="space-y-3">
+              <textarea
+                value={form.welcome_message_text || ''}
+                onChange={(e) => updateField('welcome_message_text', e.target.value)}
+                rows={3}
+                placeholder="VD: Chào bạn! Cảm ơn đã liên hệ. Mình có thể giúp gì cho bạn?"
+                className="w-full bg-white border border-slate-200 text-sm text-slate-700 placeholder-slate-400 rounded-lg px-3 py-2.5 outline-none focus:ring-1 focus:ring-blue-500/40 resize-none"
+              />
+              <div>
+                <label className="text-[11px] text-slate-500 block mb-1.5">Nút bấm (tối đa 3)</label>
+                {(form.welcome_message_buttons || []).map((btn, i) => (
+                  <div key={i} className="flex gap-2 mb-1.5">
+                    <input
+                      type="text"
+                      value={btn.title || ''}
+                      onChange={(e) => {
+                        const btns = [...(form.welcome_message_buttons || [])];
+                        btns[i] = { ...btns[i], title: e.target.value, payload: e.target.value };
+                        updateField('welcome_message_buttons', btns);
+                      }}
+                      placeholder={`Nút ${i + 1}`}
+                      className="flex-1 bg-white border border-slate-200 text-sm text-slate-700 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-blue-500/40"
+                    />
+                    <button
+                      onClick={() => {
+                        const btns = (form.welcome_message_buttons || []).filter((_, j) => j !== i);
+                        updateField('welcome_message_buttons', btns);
+                      }}
+                      className="text-red-400 hover:text-red-600 text-xs px-2"
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                ))}
+                {(form.welcome_message_buttons || []).length < 3 && (
+                  <button
+                    onClick={() => {
+                      const btns = [...(form.welcome_message_buttons || []), { title: '', payload: '' }];
+                      updateField('welcome_message_buttons', btns);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    + Thêm nút
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Dữ liệu sản phẩm */}
         <div className="border-t border-slate-200 pt-4">
           <h3 className="text-sm font-medium text-slate-800 mb-3">Dữ liệu sản phẩm (để AI tư vấn chính xác)</h3>

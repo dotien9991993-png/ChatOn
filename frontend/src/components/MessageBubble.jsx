@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatMessageTime } from '../utils/formatTime';
-import { Bot, Check } from 'lucide-react';
+import { Bot, Check, StickyNote } from 'lucide-react';
 
 /**
  * 1 tin nhắn trong chat
@@ -8,12 +8,46 @@ import { Bot, Check } from 'lucide-react';
  * - Mình (from: 'agent'): bubble phải, bg blue-600, rounded-2xl
  * - AI (from: 'ai'): bubble phải, bg violet-50 với border, Bot badge
  * - System (from: 'system'): center, nền slate-50
+ * - Internal note (type: 'internal_note'): center, amber bg, italic
+ * - Welcome (type: 'welcome'): center, blue-50 bg
  */
 export default function MessageBubble({ message, avatar, customerName }) {
   const isAgent = message.from === 'agent';
   const isAI = message.from === 'ai' || message.ai_generated;
   const isSystem = message.from === 'system' || message.type === 'system';
+  const isNote = message.type === 'internal_note';
+  const isWelcome = message.type === 'welcome';
   const isRight = isAgent || isAI;
+
+  // Internal note — center aligned, amber styling
+  if (isNote) {
+    return (
+      <div className="flex justify-center py-1">
+        <div className="max-w-[80%] bg-amber-50 border border-amber-200 rounded-xl px-5 py-2.5 text-center">
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <StickyNote className="w-3 h-3 text-amber-500" />
+            <span className="text-[10px] font-medium text-amber-600">
+              {message.author || 'Agent'}
+            </span>
+          </div>
+          <p className="text-xs text-amber-800 italic whitespace-pre-wrap">{message.text}</p>
+          <span className="text-[10px] text-amber-400">{formatMessageTime(message.timestamp)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Welcome message — center aligned, blue styling
+  if (isWelcome) {
+    return (
+      <div className="flex justify-center py-1">
+        <div className="max-w-[80%] bg-blue-50 border border-blue-200 rounded-full px-5 py-2 text-center">
+          <p className="text-xs text-blue-600 whitespace-pre-wrap">{message.text}</p>
+          <span className="text-[10px] text-blue-400">{formatMessageTime(message.timestamp)}</span>
+        </div>
+      </div>
+    );
+  }
 
   // System message — center aligned
   if (isSystem) {

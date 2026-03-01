@@ -1,5 +1,6 @@
 const { supabaseAdmin } = require('../config/supabase');
 const { pushOrderToOMS } = require('./oms-push');
+const fbService = require('./facebook');
 
 /**
  * AI Tool implementations
@@ -128,6 +129,37 @@ async function createOrder(tenantId, conversationId, input, io) {
       })
       .eq('id', order.id);
 
+    // Send invoice to customer via Facebook (non-fatal)
+    try {
+      if (conv?.customer_id) {
+        const { data: customer } = await supabaseAdmin
+          .from('customers')
+          .select('external_id')
+          .eq('id', conv.customer_id)
+          .single();
+
+        const { data: channel } = await supabaseAdmin
+          .from('channels')
+          .select('page_access_token')
+          .eq('tenant_id', tenantId)
+          .eq('type', conv?.channel || 'facebook')
+          .eq('connected', true)
+          .single();
+
+        if (channel?.page_access_token && customer?.external_id) {
+          await fbService.sendInvoice(customer.external_id, {
+            order_code: orderCode,
+            customer_name: customer_name || '',
+            customer_address: customer_address || '',
+            items: orderItems,
+            total,
+          }, channel.page_access_token);
+        }
+      }
+    } catch (invoiceErr) {
+      console.error('[AI Tools] Invoice send error (non-fatal):', invoiceErr.message);
+    }
+
     // Emit new_order event
     if (io) {
       io.to(`tenant:${tenantId}`).emit('new_order', {
@@ -189,4 +221,83 @@ async function handoffToAgent(tenantId, conversationId, input, io) {
   }
 }
 
-module.exports = { searchProducts, createOrder, handoffToAgent };
+// === check_shipping_fee ===
+async function checkShippingFee(tenantId, input) {
+  const { province, district, weight_kg } = input;
+
+  try {
+    // Check if tenant has shipping fee config
+    const { data: tenant } = await supabaseAdmin
+      .from('tenants')
+      .select('shop_info')
+      .eq('id', tenantId)
+      .single();
+
+    const shopInfo = tenant?.shop_info || {};
+    const shippingConfig = shopInfo.shipping_config || {};
+
+    // If tenant has custom shipping rules in shop_info
+    if (shippingConfig.rules && Array.isArray(shippingConfig.rules)) {
+      const provinceLower = (province || '').toLowerCase();
+      for (const rule of shippingConfig.rules) {
+        if (rule.provinces?.some(p => provinceLower.includes(p.toLowerCase()))) {
+          const fee = rule.base_fee + (rule.per_kg || 0) * (weight_kg || 1);
+          return {
+            fee,
+            province,
+            district: district || '',
+            estimated_days: rule.estimated_days || '3-5 ngày',
+            note: rule.note || '',
+            free_threshold: shippingConfig.free_threshold || null,
+          };
+        }
+      }
+    }
+
+    // Default shipping fee logic (Vietnamese regions)
+    const fee = calculateDefaultShippingFee(province, district, weight_kg);
+
+    return {
+      fee: fee.amount,
+      province,
+      district: district || '',
+      estimated_days: fee.days,
+      note: fee.note,
+      free_threshold: shippingConfig.free_threshold || null,
+    };
+  } catch (err) {
+    console.error('[AI Tools] checkShippingFee error:', err.message);
+    return { error: 'Không thể tính phí vận chuyển. Vui lòng liên hệ shop.' };
+  }
+}
+
+function calculateDefaultShippingFee(province, district, weightKg) {
+  const w = weightKg || 1;
+  const p = (province || '').toLowerCase();
+
+  // Major cities
+  const hcm = ['hồ chí minh', 'hcm', 'tp hcm', 'sài gòn', 'saigon'];
+  const hn = ['hà nội', 'ha noi', 'hanoi'];
+  const major = ['đà nẵng', 'da nang', 'hải phòng', 'hai phong', 'cần thơ', 'can tho'];
+
+  if (hcm.some(c => p.includes(c)) || hn.some(c => p.includes(c))) {
+    return { amount: 15000 + Math.max(0, w - 1) * 5000, days: '1-2 ngày', note: 'Nội thành' };
+  }
+  if (major.some(c => p.includes(c))) {
+    return { amount: 25000 + Math.max(0, w - 1) * 5000, days: '2-3 ngày', note: 'Thành phố lớn' };
+  }
+  // Mien Bac
+  const mienBac = ['bắc', 'ninh', 'thái', 'phú thọ', 'vĩnh', 'hưng', 'nam định', 'hà nam', 'lào cai', 'yên bái', 'sơn la'];
+  if (mienBac.some(c => p.includes(c))) {
+    return { amount: 30000 + Math.max(0, w - 1) * 7000, days: '3-5 ngày', note: 'Miền Bắc' };
+  }
+  // Mien Trung
+  const mienTrung = ['huế', 'quảng', 'bình', 'phú yên', 'khánh', 'ninh thuận', 'nghệ', 'hà tĩnh', 'thanh hóa'];
+  if (mienTrung.some(c => p.includes(c))) {
+    return { amount: 30000 + Math.max(0, w - 1) * 7000, days: '3-5 ngày', note: 'Miền Trung' };
+  }
+  // Default: Mien Nam / other
+  return { amount: 25000 + Math.max(0, w - 1) * 6000, days: '2-4 ngày', note: 'Khu vực khác' };
+}
+
+module.exports = { searchProducts, createOrder, handoffToAgent, checkShippingFee };

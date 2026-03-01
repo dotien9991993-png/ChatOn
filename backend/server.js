@@ -21,6 +21,15 @@ const commentRoutes = require('./routes/comments');
 const campaignRoutes = require('./routes/campaigns');
 const livestreamRoutes = require('./routes/livestream');
 const { startScheduler } = require('./jobs/campaign-scheduler');
+const { startInventorySync } = require('./jobs/inventory-sync');
+const { startDripProcessor } = require('./jobs/drip-processor');
+const { startRemarketingJob } = require('./jobs/remarketing');
+const livechatRoutes = require('./routes/livechat');
+const chatbotRulesRoutes = require('./routes/chatbot-rules');
+const dripCampaignRoutes = require('./routes/drip-campaigns');
+const segmentRoutes = require('./routes/segments');
+const reportRoutes = require('./routes/reports');
+const path = require('path');
 const errorHandler = require('./middleware/errorHandler');
 const authMiddleware = require('./middleware/auth');
 const { authLimiter, apiLimiter } = require('./middleware/rateLimit');
@@ -127,6 +136,10 @@ app.use('/api', apiLimiter);
 app.use('/webhook/facebook', webhookRoutes);
 app.use('/webhook/oms', webhookOmsRoutes);
 app.use('/auth/facebook', authFacebookRoutes);
+app.use('/api/livechat', livechatRoutes);
+
+// Serve widget static files
+app.use('/widget', express.static(path.join(__dirname, '../frontend/public/widget')));
 
 // Protected: API routes
 app.use('/api/conversations', authMiddleware, conversationRoutes);
@@ -141,6 +154,10 @@ app.use('/api/team', authMiddleware, teamRoutes);
 app.use('/api/comments', authMiddleware, commentRoutes);
 app.use('/api/campaigns', authMiddleware, campaignRoutes);
 app.use('/api/livestream', authMiddleware, livestreamRoutes);
+app.use('/api/chatbot-rules', authMiddleware, chatbotRulesRoutes);
+app.use('/api/drip-campaigns', authMiddleware, dripCampaignRoutes);
+app.use('/api/segments', authMiddleware, segmentRoutes);
+app.use('/api/reports', authMiddleware, reportRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -154,6 +171,15 @@ app.use(errorHandler);
 server.listen(config.port, () => {
   // Start campaign scheduler
   startScheduler(io);
+
+  // Start inventory sync job
+  startInventorySync(io);
+
+  // Start drip campaign processor
+  startDripProcessor(io);
+
+  // Start remarketing job
+  startRemarketingJob(io);
 
   console.log(`
   ╔══════════════════════════════════════════════╗

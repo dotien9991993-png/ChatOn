@@ -40,6 +40,10 @@ export function updateConversation(id, data) {
   return api.put(`/conversations/${id}`, data).then((res) => res.data);
 }
 
+export function sendNote(conversationId, text) {
+  return api.post('/messages/note', { conversationId, text }).then((res) => res.data);
+}
+
 // === Settings ===
 
 export function getSettings() {
@@ -140,6 +144,10 @@ export function retryOrderPush(id) {
 
 export function cancelOrder(id) {
   return api.post(`/orders/${id}/cancel`).then((res) => res.data);
+}
+
+export function syncInventory() {
+  return api.get('/products/sync-inventory').then((res) => res.data);
 }
 
 // === Quick Replies ===
@@ -312,6 +320,86 @@ export function getLivestreamComments(id, after) {
   const params = {};
   if (after) params.after = after;
   return api.get(`/livestream/${id}/comments`, { params }).then((res) => res.data);
+}
+
+// === Chatbot Rules ===
+
+export function getChatbotRules() {
+  return api.get('/chatbot-rules').then((res) => res.data);
+}
+
+export function createChatbotRule(data) {
+  return api.post('/chatbot-rules', data).then((res) => res.data);
+}
+
+export function updateChatbotRule(id, data) {
+  return api.put(`/chatbot-rules/${id}`, data).then((res) => res.data);
+}
+
+export function deleteChatbotRule(id) {
+  return api.delete(`/chatbot-rules/${id}`).then((res) => res.data);
+}
+
+export function importChatbotTemplate(template) {
+  return api.post('/chatbot-rules/import-template', { template }).then((res) => res.data);
+}
+
+export function reorderChatbotRules(orderedIds) {
+  return api.post('/chatbot-rules/reorder', { orderedIds }).then((res) => res.data);
+}
+
+// === Drip Campaigns ===
+
+export function getDripCampaigns() {
+  return api.get('/drip-campaigns').then((res) => res.data);
+}
+
+export function createDripCampaign(data) {
+  return api.post('/drip-campaigns', data).then((res) => res.data);
+}
+
+export function updateDripCampaign(id, data) {
+  return api.put(`/drip-campaigns/${id}`, data).then((res) => res.data);
+}
+
+export function deleteDripCampaign(id) {
+  return api.delete(`/drip-campaigns/${id}`).then((res) => res.data);
+}
+
+export function enrollDripCampaign(id, customer_id) {
+  return api.post(`/drip-campaigns/${id}/enroll`, { customer_id }).then((res) => res.data);
+}
+
+// === Customer Segments ===
+
+export function getSegments() {
+  return api.get('/segments').then((res) => res.data);
+}
+
+export function createSegment(data) {
+  return api.post('/segments', data).then((res) => res.data);
+}
+
+export function updateSegment(id, data) {
+  return api.put(`/segments/${id}`, data).then((res) => res.data);
+}
+
+export function deleteSegment(id) {
+  return api.delete(`/segments/${id}`).then((res) => res.data);
+}
+
+export function getSegmentCustomers(id) {
+  return api.get(`/segments/${id}/customers`).then((res) => res.data);
+}
+
+export function refreshSegment(id) {
+  return api.post(`/segments/${id}/refresh`).then((res) => res.data);
+}
+
+// === Reports ===
+
+export function exportReport(params = {}) {
+  return api.get('/reports/export', { responseType: 'blob', params }).then((res) => res.data);
 }
 
 // === Facebook OAuth ===

@@ -120,4 +120,66 @@ router.post('/send', async (req, res) => {
   }
 });
 
+// POST /api/messages/note — Ghi chú nội bộ (không gửi cho khách)
+router.post('/note', async (req, res) => {
+  const { conversationId, text } = req.body;
+
+  if (!conversationId || !text) {
+    return res.status(400).json({ error: 'Thiếu conversationId hoặc text' });
+  }
+
+  try {
+    // Verify tenant ownership
+    const { data: conv, error: convErr } = await supabaseAdmin
+      .from('conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('tenant_id', req.tenantId)
+      .single();
+
+    if (convErr || !conv) {
+      return res.status(404).json({ error: 'Không tìm thấy conversation' });
+    }
+
+    const authorName = req.profile?.display_name || 'Agent';
+
+    // Insert internal note — NOT sent to Facebook, NOT updating last_message
+    const { data: message, error: msgErr } = await supabaseAdmin
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        sender: 'system',
+        text,
+        type: 'internal_note',
+      })
+      .select('*')
+      .single();
+
+    if (msgErr) {
+      return res.status(500).json({ error: 'Lỗi lưu ghi chú: ' + msgErr.message });
+    }
+
+    const mappedMessage = {
+      id: message.id,
+      from: message.sender,
+      text: message.text,
+      type: message.type,
+      timestamp: message.created_at,
+      author: authorName,
+    };
+
+    // Emit real-time event so agents see it
+    const io = req.app.get('io');
+    io.to(`tenant:${req.tenantId}`).emit('new_message', {
+      conversation: { id: conversationId },
+      message: mappedMessage,
+    });
+
+    res.json({ success: true, message: mappedMessage });
+  } catch (err) {
+    console.error('[Messages] POST /note error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
 module.exports = router;

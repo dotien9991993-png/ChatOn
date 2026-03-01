@@ -9,11 +9,17 @@ import {
   UserCog,
   Store,
   X,
+  Cpu,
+  Zap,
+  Filter,
 } from 'lucide-react';
 
 const MENU_ITEMS = [
   { id: 'channels', icon: Link2, label: 'Kết nối kênh chat' },
   { id: 'ai', icon: Bot, label: 'Cài đặt AI' },
+  { id: 'chatbot_rules', icon: Cpu, label: 'Chatbot Rule-based' },
+  { id: 'drip_campaigns', icon: Zap, label: 'Drip Campaign' },
+  { id: 'segments', icon: Filter, label: 'Phân nhóm khách' },
   { id: 'oms', icon: ShoppingCart, label: 'Đơn hàng & OMS' },
   { id: 'quick_replies', icon: MessageSquare, label: 'Câu trả lời mẫu' },
   { id: 'comments', icon: MessageCircle, label: 'Bình luận tự động' },

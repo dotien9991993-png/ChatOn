@@ -6,7 +6,7 @@ import {
 import {
   MessageSquare, Activity, ClipboardList, Mail, Users, UserPlus,
   Package, DollarSign, Bell, RefreshCw, TrendingUp, BarChart3,
-  PieChart as PieChartIcon, UserCheck,
+  PieChart as PieChartIcon, UserCheck, Download,
 } from 'lucide-react';
 import * as api from '../services/api';
 
@@ -113,6 +113,7 @@ export default function DashboardPage() {
   const [agents, setAgents] = useState([]);
   const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -169,13 +170,37 @@ export default function DashboardPage() {
             <h1 className="text-lg font-bold text-slate-900">Dashboard</h1>
             <p className="text-sm text-slate-500">Tổng quan hoạt động kinh doanh</p>
           </div>
-          <button
-            onClick={loadData}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-100 transition"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Làm mới
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  const blob = await api.exportReport({ days });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `chaton-report-${new Date().toISOString().split('T')[0]}.xlsx`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  console.error('Export error:', err);
+                }
+                setExporting(false);
+              }}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-100 transition disabled:opacity-50"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {exporting ? 'Xuất...' : 'Xuất Excel'}
+            </button>
+            <button
+              onClick={loadData}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-100 transition"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Làm mới
+            </button>
+          </div>
         </div>
 
         {/* Stat Cards */}

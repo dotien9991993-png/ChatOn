@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../config/supabase');
 const { pushOrderToOMS } = require('../services/oms-push');
+const fbService = require('../services/facebook');
 
 /**
  * API quản lý đơn hàng (multi-tenant via req.tenantId)
@@ -162,6 +163,35 @@ router.post('/', async (req, res) => {
         text: confirmText,
         type: 'system',
       });
+
+      // Send invoice to customer via Facebook
+      try {
+        const { data: channel } = await supabaseAdmin
+          .from('channels')
+          .select('page_access_token')
+          .eq('tenant_id', req.tenantId)
+          .eq('type', channelType || 'facebook')
+          .eq('connected', true)
+          .single();
+
+        const { data: customer } = await supabaseAdmin
+          .from('customers')
+          .select('external_id')
+          .eq('id', customerId)
+          .single();
+
+        if (channel?.page_access_token && customer?.external_id) {
+          await fbService.sendInvoice(customer.external_id, {
+            order_code: orderCode,
+            customer_name,
+            customer_address,
+            items: orderItems,
+            total,
+          }, channel.page_access_token);
+        }
+      } catch (invoiceErr) {
+        console.error('[Orders] Invoice send error (non-fatal):', invoiceErr.message);
+      }
 
       // Emit events
       const io = req.app.get('io');

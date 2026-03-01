@@ -3,6 +3,9 @@ import { Menu } from 'lucide-react';
 import SettingsSidebar from './SettingsSidebar';
 import ChannelSettings from './ChannelSettings';
 import AISettings from './AISettings';
+import ChatbotRulesSettings from './ChatbotRulesSettings';
+import DripCampaignSettings from './DripCampaignSettings';
+import SegmentsSettings from './SegmentsSettings';
 import OrderSettings from './OrderSettings';
 import QuickRepliesSettings from './QuickRepliesSettings';
 import AccountSettings from './AccountSettings';
@@ -20,6 +23,9 @@ export default function SettingsLayout({ settings, onSettingsChange, showToast }
   const sectionComponents = {
     channels: ChannelSettings,
     ai: AISettings,
+    chatbot_rules: ChatbotRulesSettings,
+    drip_campaigns: DripCampaignSettings,
+    segments: SegmentsSettings,
     oms: OrderSettings,
     quick_replies: QuickRepliesSettings,
     comments: CommentSettings,

@@ -10,6 +10,7 @@ const CHANNEL_FILTERS = [
   )},
   { key: 'zalo', label: 'Zalo' },
   { key: 'instagram', label: 'IG' },
+  { key: 'livechat', label: 'Web' },
 ];
 
 const INBOX_FILTERS = [
@@ -20,16 +21,28 @@ const INBOX_FILTERS = [
 ];
 
 /**
- * Sidebar — ô tìm kiếm + inbox filter + channel filter + danh sách conversations
+ * Sidebar — status tabs + ô tìm kiếm + inbox filter + channel filter + danh sách conversations
  */
 export default function Sidebar({ conversations, activeId, onSelect, onClose }) {
   const { profile } = useAuth();
   const [search, setSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState('all');
   const [inboxFilter, setInboxFilter] = useState('all');
+  const [statusTab, setStatusTab] = useState('active'); // 'active' | 'resolved' | 'all'
+
+  // Count by status
+  const activeCount = conversations.filter((c) => c.status === 'active').length;
+  const resolvedCount = conversations.filter((c) => c.status === 'resolved').length;
+
+  // Filter by status tab first
+  let filtered = conversations;
+  if (statusTab === 'active') {
+    filtered = filtered.filter((c) => c.status === 'active');
+  } else if (statusTab === 'resolved') {
+    filtered = filtered.filter((c) => c.status === 'resolved');
+  }
 
   // Lọc conversations theo inbox filter
-  let filtered = conversations;
   if (inboxFilter === 'mine') {
     filtered = filtered.filter((c) => c.assigned_to === profile?.id);
   } else if (inboxFilter === 'unassigned') {
@@ -51,6 +64,40 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose }) 
 
   return (
     <div className="flex flex-col h-full bg-white border-r border-slate-200">
+      {/* Status tabs */}
+      <div className="flex border-b border-slate-200">
+        <button
+          onClick={() => setStatusTab('active')}
+          className={`flex-1 py-2.5 text-xs font-medium text-center transition ${
+            statusTab === 'active'
+              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          Đang mở <span className="ml-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px]">{activeCount}</span>
+        </button>
+        <button
+          onClick={() => setStatusTab('resolved')}
+          className={`flex-1 py-2.5 text-xs font-medium text-center transition ${
+            statusTab === 'resolved'
+              ? 'text-green-600 border-b-2 border-green-600 bg-green-50/50'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          Đã xong <span className="ml-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-600 text-[10px]">{resolvedCount}</span>
+        </button>
+        <button
+          onClick={() => setStatusTab('all')}
+          className={`flex-1 py-2.5 text-xs font-medium text-center transition ${
+            statusTab === 'all'
+              ? 'text-slate-800 border-b-2 border-slate-600 bg-slate-50'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          Tất cả <span className="ml-1 px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px]">{conversations.length}</span>
+        </button>
+      </div>
+
       {/* Search + filters */}
       <div className="px-4 py-3 border-b border-slate-200">
         {/* Ô tìm kiếm */}

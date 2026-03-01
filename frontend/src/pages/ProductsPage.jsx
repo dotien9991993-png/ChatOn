@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Package, Search, Plus, Edit, Trash2, Camera } from 'lucide-react';
+import { Package, Search, Plus, Edit, Trash2, Camera, RefreshCw } from 'lucide-react';
 import * as api from '../services/api';
 
 const EMPTY_PRODUCT = {
@@ -18,6 +18,7 @@ export default function ProductsPage() {
   const [form, setForm] = useState(EMPTY_PRODUCT);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -109,6 +110,24 @@ export default function ProductsPage() {
                 className="bg-white border border-slate-200 text-sm text-slate-700 placeholder-slate-400 rounded-lg pl-9 pr-3 py-2 outline-none focus:ring-1 focus:ring-blue-500/40 w-48"
               />
             </div>
+            <button
+              onClick={async () => {
+                setSyncing(true);
+                try {
+                  const result = await api.syncInventory();
+                  showToast(result.message || `Đã đồng bộ ${result.updated} sản phẩm`);
+                  loadProducts();
+                } catch (err) {
+                  showToast('Lỗi đồng bộ: ' + (err.response?.data?.error || err.message), 'error');
+                } finally {
+                  setSyncing(false);
+                }
+              }}
+              disabled={syncing}
+              className="px-3 py-2 bg-white border border-slate-200 text-sm text-slate-600 rounded-lg hover:bg-slate-50 transition font-medium flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} /> Đồng bộ tồn kho
+            </button>
             <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 transition font-medium flex items-center gap-1.5">
               <Plus className="w-4 h-4" /> Thêm SP
             </button>
@@ -160,7 +179,15 @@ export default function ProductsPage() {
                   <td className="px-4 py-3 text-sm text-slate-600 hidden sm:table-cell">{p.category || '—'}</td>
                   <td className="px-4 py-3 text-sm text-slate-800 font-medium text-right">{Number(p.price).toLocaleString('vi-VN')}đ</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`text-sm font-medium ${p.stock <= 0 ? 'text-red-600' : p.stock < 5 ? 'text-yellow-600' : 'text-green-600'}`}>{p.stock}</span>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className={`text-sm font-medium ${p.stock <= 0 ? 'text-red-600' : p.stock < 5 ? 'text-yellow-600' : 'text-green-600'}`}>{p.stock}</span>
+                      {p.stock <= 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">Hết hàng</span>
+                      )}
+                      {p.stock > 0 && p.stock < 5 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 font-medium">Sắp hết</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">

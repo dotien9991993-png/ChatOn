@@ -1,6 +1,6 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { supabaseAdmin } = require('../config/supabase');
-const { searchProducts, createOrder, handoffToAgent } = require('./ai-tools');
+const { searchProducts, createOrder, handoffToAgent, checkShippingFee } = require('./ai-tools');
 
 /**
  * AI Engine — bộ não chính: nhận tin nhắn khách, gọi Claude, trả reply
@@ -111,6 +111,19 @@ const TOOLS = [
     },
   },
   {
+    name: 'check_shipping_fee',
+    description: 'Tra cứu phí vận chuyển theo tỉnh/thành phố và cân nặng. Dùng khi khách hỏi về phí ship, giá vận chuyển.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        province: { type: 'string', description: 'Tỉnh/thành phố giao hàng' },
+        district: { type: 'string', description: 'Quận/huyện (optional)' },
+        weight_kg: { type: 'number', description: 'Cân nặng ước tính (kg), mặc định 1kg' },
+      },
+      required: ['province'],
+    },
+  },
+  {
     name: 'handoff_to_agent',
     description: 'Chuyển cho nhân viên khi: câu hỏi phức tạp, khiếu nại, yêu cầu đặc biệt, hoặc AI không đủ thông tin trả lời',
     input_schema: {
@@ -215,6 +228,9 @@ async function processWithAI({ tenantId, conversationId, customerMessage, io }) 
           case 'create_order':
             result = await createOrder(tenantId, conversationId, toolUse.input, io);
             if (result.success) orderCreated = result;
+            break;
+          case 'check_shipping_fee':
+            result = await checkShippingFee(tenantId, toolUse.input);
             break;
           case 'handoff_to_agent':
             result = await handoffToAgent(tenantId, conversationId, toolUse.input, io);

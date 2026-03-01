@@ -5,6 +5,7 @@ const config = require('../config');
 const fbService = require('../services/facebook');
 const { supabaseAdmin } = require('../config/supabase');
 const { processWithAI } = require('../services/ai-engine');
+const { matchChatbotRule } = require('../services/chatbot-matcher');
 
 // Dedup: track processed message IDs to handle Facebook retries
 const processedMids = new Map();
@@ -98,6 +99,10 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
     }
 
     for (const event of entry.messaging || []) {
+      // Handle postback events (from button template)
+      if (event.postback && !event.message) {
+        event.message = { text: event.postback.title || event.postback.payload };
+      }
       if (!event.message) continue;
 
       // Fix 2: Skip echo messages (page's own sent messages)
@@ -208,6 +213,38 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
             continue;
           }
           conversationId = newConv.id;
+
+          // === Welcome Message for NEW conversations ===
+          try {
+            const { data: welcomeTenant } = await supabaseAdmin
+              .from('tenants')
+              .select('ai_config')
+              .eq('id', tenantId)
+              .single();
+
+            const welcomeConfig = welcomeTenant?.ai_config || {};
+            if (welcomeConfig.welcome_message_enabled && welcomeConfig.welcome_message_text) {
+              const welcomeText = welcomeConfig.welcome_message_text;
+              const welcomeButtons = welcomeConfig.welcome_message_buttons || [];
+
+              // Send via Facebook
+              if (welcomeButtons.length > 0) {
+                await fbService.sendButtonTemplate(senderId, welcomeText, welcomeButtons, pageAccessToken);
+              } else {
+                await fbService.sendMessageWithToken(senderId, welcomeText, pageAccessToken);
+              }
+
+              // Insert welcome system message
+              await supabaseAdmin.from('messages').insert({
+                conversation_id: conversationId,
+                sender: 'system',
+                text: welcomeText,
+                type: 'welcome',
+              });
+            }
+          } catch (welcomeErr) {
+            console.error('[Webhook] Welcome message error (non-fatal):', welcomeErr.message);
+          }
         }
 
         // 4. Insert message
@@ -268,8 +305,81 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
 
         console.log(`[Webhook] Processed -> conversation ${conversationId}`);
 
-        // === AI Auto-reply ===
+        // === Chatbot Rule-based matching (BEFORE AI) ===
+        let ruleMatched = false;
         try {
+          const ruleResult = await matchChatbotRule(tenantId, text);
+          if (ruleResult) {
+            ruleMatched = true;
+            console.log(`[Webhook] Rule matched: "${ruleResult.ruleName}" for conversation ${conversationId}`);
+
+            // Send rule response via Facebook
+            if (ruleResult.responseButtons?.length > 0) {
+              await fbService.sendButtonTemplate(senderId, ruleResult.responseText, ruleResult.responseButtons, pageAccessToken);
+            } else {
+              await fbService.sendMessageWithToken(senderId, ruleResult.responseText, pageAccessToken);
+            }
+
+            // Save rule response as message
+            const { data: ruleMsg } = await supabaseAdmin
+              .from('messages')
+              .insert({
+                conversation_id: conversationId,
+                sender: 'ai',
+                text: ruleResult.responseText,
+                type: 'chatbot_rule',
+              })
+              .select('*')
+              .single();
+
+            // Update conversation last message
+            await supabaseAdmin
+              .from('conversations')
+              .update({
+                last_message: ruleResult.responseText,
+                last_message_at: new Date().toISOString(),
+              })
+              .eq('id', conversationId);
+
+            // Emit rule response
+            if (ruleMsg) {
+              const { data: updatedConv } = await supabaseAdmin
+                .from('conversations')
+                .select('*')
+                .eq('id', conversationId)
+                .single();
+
+              io.to(`tenant:${tenantId}`).emit('new_message', {
+                conversation: {
+                  id: updatedConv.id,
+                  senderId: customer.external_id,
+                  name: customer.name,
+                  avatar: customer.avatar,
+                  channel: updatedConv.channel,
+                  phone: customer.phone || '',
+                  notes: customer.notes || '',
+                  status: updatedConv.status,
+                  lastMessage: updatedConv.last_message,
+                  lastMessageAt: updatedConv.last_message_at,
+                  unread: updatedConv.unread,
+                  createdAt: updatedConv.created_at,
+                },
+                message: {
+                  id: ruleMsg.id,
+                  from: 'ai',
+                  text: ruleMsg.text,
+                  type: ruleMsg.type,
+                  timestamp: ruleMsg.created_at,
+                },
+              });
+            }
+          }
+        } catch (ruleErr) {
+          console.error('[Webhook] Rule matching error (non-fatal):', ruleErr.message);
+        }
+
+        // === AI Auto-reply (skip if rule already matched) ===
+        if (!ruleMatched) try {
           // Get tenant AI config
           const { data: tenant } = await supabaseAdmin
             .from('tenants')

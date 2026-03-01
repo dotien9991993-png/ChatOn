@@ -196,3 +196,122 @@ CREATE POLICY "Tenant isolation for messages" ON messages
 -- Enable realtime for messages (optional)
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
+
+-- ============================================
+-- Phase 1 Features: Livechat + Widget
+-- ============================================
+
+-- Livechat visitors table
+CREATE TABLE IF NOT EXISTS livechat_visitors (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE NOT NULL,
+  visitor_id TEXT NOT NULL,
+  name TEXT, email TEXT, phone TEXT,
+  ip_address TEXT, user_agent TEXT, page_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(tenant_id, visitor_id)
+);
+CREATE INDEX IF NOT EXISTS idx_lc_visitors_tenant ON livechat_visitors(tenant_id);
+ALTER TABLE livechat_visitors ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tenant_lc_visitors" ON livechat_visitors
+  FOR ALL USING (tenant_id IN (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
+
+-- Widget config on channels
+ALTER TABLE channels ADD COLUMN IF NOT EXISTS widget_config JSONB DEFAULT '{}';
+
+-- ============================================
+-- Phase 2 Features: Chatbot Rules, Drip, Segments, Remarketing
+-- ============================================
+
+-- 2A: Chatbot Rules (rule-based auto-reply)
+CREATE TABLE IF NOT EXISTS chatbot_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  trigger_type TEXT DEFAULT 'keyword',
+  keywords TEXT[] DEFAULT '{}',
+  match_type TEXT DEFAULT 'contains' CHECK (match_type IN ('contains', 'exact', 'starts_with')),
+  response_text TEXT NOT NULL,
+  response_buttons JSONB DEFAULT '[]',
+  response_image_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  priority INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_chatbot_rules_tenant ON chatbot_rules(tenant_id);
+ALTER TABLE chatbot_rules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tenant_chatbot_rules" ON chatbot_rules
+  FOR ALL USING (tenant_id IN (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
+
+-- 2C: Drip Campaigns
+CREATE TABLE IF NOT EXISTS drip_campaigns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  trigger_event TEXT DEFAULT 'order_created',
+  steps JSONB DEFAULT '[]',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_drip_campaigns_tenant ON drip_campaigns(tenant_id);
+ALTER TABLE drip_campaigns ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tenant_drip_campaigns" ON drip_campaigns
+  FOR ALL USING (tenant_id IN (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
+
+-- Drip Enrollments (tracks customer progress through campaign)
+CREATE TABLE IF NOT EXISTS drip_enrollments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  drip_campaign_id UUID REFERENCES drip_campaigns(id) ON DELETE CASCADE NOT NULL,
+  customer_id UUID REFERENCES customers(id) ON DELETE CASCADE NOT NULL,
+  current_step INTEGER DEFAULT 0,
+  next_send_at TIMESTAMPTZ,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_drip_enrollments_next ON drip_enrollments(next_send_at) WHERE status = 'active';
+ALTER TABLE drip_enrollments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tenant_drip_enrollments" ON drip_enrollments
+  FOR ALL USING (
+    drip_campaign_id IN (SELECT id FROM drip_campaigns WHERE tenant_id IN (SELECT tenant_id FROM profiles WHERE id = auth.uid()))
+  );
+
+-- 2E: Customer Segments
+CREATE TABLE IF NOT EXISTS customer_segments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  conditions JSONB DEFAULT '[]',
+  match_type TEXT DEFAULT 'all' CHECK (match_type IN ('all', 'any')),
+  customer_count INTEGER DEFAULT 0,
+  last_refreshed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_segments_tenant ON customer_segments(tenant_id);
+ALTER TABLE customer_segments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tenant_segments" ON customer_segments
+  FOR ALL USING (tenant_id IN (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
+
+-- 2D: Add metadata to conversations for remarketing
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
+
+-- 2B: Add recurring_token to customers for recurring notifications
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS recurring_token TEXT;
+
+-- AI logs table (if not exists from Phase 1)
+CREATE TABLE IF NOT EXISTS ai_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL,
+  customer_message TEXT,
+  ai_response TEXT,
+  error TEXT,
+  tools_used TEXT[],
+  model TEXT,
+  input_tokens INTEGER DEFAULT 0,
+  output_tokens INTEGER DEFAULT 0,
+  duration_ms INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ai_logs_tenant ON ai_logs(tenant_id, created_at DESC);

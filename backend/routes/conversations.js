@@ -156,16 +156,44 @@ router.put('/:id', async (req, res) => {
         .eq('id', conv.id);
     }
 
-    // Emit to tenant room
-    const io = req.app.get('io');
-    io.to(`tenant:${req.tenantId}`).emit('conversation_updated', {
-      id: conv.id,
-      phone,
-      notes,
-      status,
-      ai_enabled,
-      assigned_to,
-    });
+    // If status changed to 'resolved', insert system message
+    if (status === 'resolved') {
+      const agentName = req.profile?.display_name || 'Agent';
+      const sysText = `Hội thoại đã được đánh dấu hoàn thành bởi ${agentName}`;
+      const { data: sysMsg } = await supabaseAdmin
+        .from('messages')
+        .insert({
+          conversation_id: conv.id,
+          sender: 'system',
+          text: sysText,
+          type: 'system',
+        })
+        .select('*')
+        .single();
+
+      const io = req.app.get('io');
+      if (sysMsg) {
+        io.to(`tenant:${req.tenantId}`).emit('new_message', {
+          conversation: { id: conv.id },
+          message: {
+            id: sysMsg.id,
+            from: sysMsg.sender,
+            text: sysMsg.text,
+            type: sysMsg.type,
+            timestamp: sysMsg.created_at,
+          },
+        });
+      }
+      io.to(`tenant:${req.tenantId}`).emit('conversation_updated', {
+        id: conv.id, phone, notes, status, ai_enabled, assigned_to,
+      });
+    } else {
+      // Emit to tenant room
+      const io = req.app.get('io');
+      io.to(`tenant:${req.tenantId}`).emit('conversation_updated', {
+        id: conv.id, phone, notes, status, ai_enabled, assigned_to,
+      });
+    }
 
     res.json({ success: true });
   } catch (err) {

@@ -141,4 +141,46 @@ router.post('/:tenantSlug', async (req, res) => {
   }
 });
 
+// POST /webhook/oms/inventory/:tenantSlug — Nhận cập nhật tồn kho từ OMS
+router.post('/inventory/:tenantSlug', async (req, res) => {
+  const { tenantSlug } = req.params;
+  const items = req.body;
+
+  res.status(200).json({ received: true });
+
+  try {
+    const { data: tenant, error: tErr } = await supabaseAdmin
+      .from('tenants')
+      .select('id')
+      .eq('slug', tenantSlug)
+      .single();
+
+    if (tErr || !tenant) {
+      console.warn(`[OMS Inventory] Tenant not found for slug: ${tenantSlug}`);
+      return;
+    }
+
+    const updates = Array.isArray(items) ? items : [];
+    let updated = 0;
+
+    for (const item of updates) {
+      if (!item.sku) continue;
+      const { error } = await supabaseAdmin
+        .from('products')
+        .update({ stock: item.stock, updated_at: new Date().toISOString() })
+        .eq('tenant_id', tenant.id)
+        .eq('sku', item.sku);
+
+      if (!error) updated++;
+    }
+
+    const io = req.app.get('io');
+    io.to(`tenant:${tenant.id}`).emit('inventory_updated', { updated });
+
+    console.log(`[OMS Inventory] Updated ${updated} products for tenant ${tenantSlug}`);
+  } catch (err) {
+    console.error('[OMS Inventory] Error:', err.message);
+  }
+});
+
 module.exports = router;

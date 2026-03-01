@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../config/supabase');
 const { startPolling, stopPolling } = require('../services/livestream-service');
+const fbService = require('../services/facebook');
 
 /**
  * API Livestream bán hàng (multi-tenant)
@@ -116,6 +117,51 @@ router.post('/:id/stop', async (req, res) => {
 
     const io = req.app.get('io');
     io.to(`tenant:${req.tenantId}`).emit('livestream_ended', { id: req.params.id });
+
+    // === Livestream Reminder: find uncommitted orders ===
+    try {
+      const { data: lsComments } = await supabaseAdmin
+        .from('livestream_comments')
+        .select('user_id, user_name, order_detected, order_confirmed')
+        .eq('livestream_id', req.params.id)
+        .eq('order_detected', true)
+        .eq('order_confirmed', false);
+
+      if (lsComments && lsComments.length > 0) {
+        // Get channel for sending messages
+        const { data: channel } = await supabaseAdmin
+          .from('channels')
+          .select('page_access_token')
+          .eq('tenant_id', req.tenantId)
+          .eq('type', 'facebook')
+          .eq('connected', true)
+          .single();
+
+        if (channel?.page_access_token) {
+          const uniqueUsers = [...new Map(lsComments.map(c => [c.user_id, c])).values()];
+          let remindersSent = 0;
+
+          for (const user of uniqueUsers) {
+            if (!user.user_id) continue;
+            try {
+              const reminderText = `Hi ${user.user_name || 'bạn'}! Bạn đã đặt hàng trong livestream nhưng chưa xác nhận. Vui lòng nhắn SĐT + địa chỉ để shop hoàn tất đơn hàng nhé!`;
+              await fbService.sendMessageWithToken(user.user_id, reminderText, channel.page_access_token);
+              remindersSent++;
+            } catch (sendErr) {
+              // Non-fatal: user may not have messaged the page
+            }
+          }
+
+          console.log(`[Livestream] Sent ${remindersSent} reminders for livestream ${req.params.id}`);
+          io.to(`tenant:${req.tenantId}`).emit('livestream_reminders_sent', {
+            livestreamId: req.params.id,
+            count: remindersSent,
+          });
+        }
+      }
+    } catch (reminderErr) {
+      console.error('[Livestream] Reminder error (non-fatal):', reminderErr.message);
+    }
 
     res.json(data);
   } catch (err) {

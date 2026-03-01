@@ -3,6 +3,7 @@ import ConnectionCard from './ConnectionCard';
 import FacebookConnectButton from './FacebookConnectButton';
 import PageSelector from './PageSelector';
 import * as api from '../../services/api';
+import { Copy, Check } from 'lucide-react';
 
 /**
  * Trang cài đặt kết nối kênh chat
@@ -400,6 +401,26 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
             'Cấu hình Webhook → subscribe instagram_messaging',
           ]}
         />
+        {/* ======== LIVECHAT WEBSITE ======== */}
+        <div className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-600">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5a17.92 17.92 0 01-8.716-2.247m0 0A8.966 8.966 0 013 12c0-1.257.26-2.453.727-3.418" />
+                </svg>
+              </div>
+              <span className="text-base font-semibold text-slate-800">Livechat Website</span>
+            </div>
+          </div>
+
+          <LivechatSettings
+            settings={settings}
+            onSettingsChange={onSettingsChange}
+            showToast={showToast}
+            webhookBase={webhookBase}
+          />
+        </div>
       </div>
 
       {/* Page Selector Modal */}
@@ -410,6 +431,145 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
           showToast={showToast}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Livechat widget settings sub-component
+ */
+function LivechatSettings({ settings, onSettingsChange, showToast, webhookBase }) {
+  const tenantSlug = settings?.shop?.slug || '';
+  const livechatConfig = settings?.channels?.livechat?.widget_config || {};
+  const [color, setColor] = useState(livechatConfig.color || '#3b82f6');
+  const [position, setPosition] = useState(livechatConfig.position || 'right');
+  const [welcomeText, setWelcomeText] = useState(livechatConfig.welcome_text || '');
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (livechatConfig.color) setColor(livechatConfig.color);
+    if (livechatConfig.position) setPosition(livechatConfig.position);
+    if (livechatConfig.welcome_text) setWelcomeText(livechatConfig.welcome_text);
+  }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const embedCode = `<script src="${webhookBase}/widget/chaton-widget.js" data-tenant="${tenantSlug}"></script>`;
+
+  function copyEmbed() {
+    navigator.clipboard.writeText(embedCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await api.updateChannel('livechat', {
+        widget_config: {
+          color,
+          position,
+          welcome_text: welcomeText,
+        },
+      });
+      showToast('Đã lưu cài đặt Livechat!', 'success');
+      const updated = await api.getSettings();
+      onSettingsChange(updated);
+    } catch (err) {
+      showToast('Lỗi: ' + (err.response?.data?.error || err.message), 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="px-5 py-4 space-y-4">
+      {/* Embed Code */}
+      <div>
+        <label className="text-xs text-slate-600 font-medium block mb-1.5">Mã nhúng (dán vào website)</label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={embedCode}
+            readOnly
+            className="flex-1 bg-slate-50 border border-slate-200 text-xs text-slate-700 rounded-lg px-3 py-2.5 outline-none font-mono"
+          />
+          <button
+            onClick={copyEmbed}
+            className="px-3 bg-slate-100 rounded-lg text-slate-500 hover:text-blue-600 transition flex items-center gap-1 text-xs"
+          >
+            {copied ? <><Check className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Color Picker */}
+      <div>
+        <label className="text-xs text-slate-600 font-medium block mb-1.5">Màu chủ đạo</label>
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer"
+          />
+          <input
+            type="text"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="w-28 bg-white border border-slate-200 text-sm text-slate-700 rounded-lg px-3 py-2 outline-none font-mono"
+          />
+          <div className="flex gap-2">
+            {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#000000'].map((c) => (
+              <button
+                key={c}
+                onClick={() => setColor(c)}
+                className={`w-7 h-7 rounded-full border-2 transition ${color === c ? 'border-slate-400 scale-110' : 'border-transparent'}`}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Position */}
+      <div>
+        <label className="text-xs text-slate-600 font-medium block mb-1.5">Vị trí widget</label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPosition('right')}
+            className={`px-4 py-2 rounded-lg text-xs font-medium border transition ${position === 'right' ? 'bg-blue-50 border-blue-200 text-blue-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+          >
+            Phải
+          </button>
+          <button
+            onClick={() => setPosition('left')}
+            className={`px-4 py-2 rounded-lg text-xs font-medium border transition ${position === 'left' ? 'bg-blue-50 border-blue-200 text-blue-600' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+          >
+            Trái
+          </button>
+        </div>
+      </div>
+
+      {/* Welcome Text */}
+      <div>
+        <label className="text-xs text-slate-600 font-medium block mb-1.5">Lời chào trên form</label>
+        <input
+          type="text"
+          value={welcomeText}
+          onChange={(e) => setWelcomeText(e.target.value)}
+          placeholder="VD: Vui lòng nhập thông tin để bắt đầu chat"
+          className="w-full bg-white border border-slate-200 text-sm text-slate-700 placeholder-slate-400 rounded-lg px-3 py-2.5 outline-none focus:ring-1 focus:ring-blue-500/40"
+        />
+      </div>
+
+      {/* Save */}
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-500 disabled:opacity-50 transition"
+      >
+        {saving ? 'Đang lưu...' : 'Lưu cài đặt'}
+      </button>
     </div>
   );
 }

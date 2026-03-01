@@ -43,6 +43,60 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/products/sync-inventory — Pull inventory from OMS
+router.get('/sync-inventory', async (req, res) => {
+  try {
+    const { data: tenant } = await supabaseAdmin
+      .from('tenants')
+      .select('oms_config')
+      .eq('id', req.tenantId)
+      .single();
+
+    const omsConfig = tenant?.oms_config || {};
+    if (!omsConfig.api_url || !omsConfig.api_key) {
+      return res.json({ success: false, message: 'OMS chưa được cấu hình', updated: 0 });
+    }
+
+    // Pull inventory from OMS API
+    const axios = require('axios');
+    let inventoryData = [];
+    try {
+      const omsRes = await axios.get(`${omsConfig.api_url}/inventory`, {
+        headers: { Authorization: `Bearer ${omsConfig.api_key}` },
+        timeout: 10000,
+      });
+      inventoryData = omsRes.data?.items || omsRes.data || [];
+    } catch (omsErr) {
+      console.error('[Products] OMS inventory fetch error:', omsErr.message);
+      return res.json({ success: false, message: 'Không thể kết nối OMS: ' + omsErr.message, updated: 0 });
+    }
+
+    if (!Array.isArray(inventoryData)) {
+      return res.json({ success: false, message: 'Dữ liệu OMS không hợp lệ', updated: 0 });
+    }
+
+    let updated = 0;
+    for (const item of inventoryData) {
+      if (!item.sku) continue;
+      const { error } = await supabaseAdmin
+        .from('products')
+        .update({ stock: item.stock ?? item.quantity ?? 0, updated_at: new Date().toISOString() })
+        .eq('tenant_id', req.tenantId)
+        .eq('sku', item.sku);
+
+      if (!error) updated++;
+    }
+
+    const io = req.app.get('io');
+    io.to(`tenant:${req.tenantId}`).emit('inventory_updated', { updated });
+
+    res.json({ success: true, message: `Đã cập nhật ${updated} sản phẩm`, updated });
+  } catch (err) {
+    console.error('[Products] sync-inventory error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // GET /api/products/search — Quick search (autocomplete)
 router.get('/search', async (req, res) => {
   try {

@@ -121,7 +121,7 @@ export default function ChatArea({
                 className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 transition"
               >
                 <CheckCircle className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Đã xử lý</span>
+                <span className="hidden sm:inline">Đã xong</span>
               </button>
               <button
                 onClick={() => onUpdateStatus('spam')}

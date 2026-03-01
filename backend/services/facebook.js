@@ -65,6 +65,110 @@ async function sendMessage(recipientId, text) {
   return sendMessageWithToken(recipientId, text, config.fb.pageAccessToken);
 }
 
+/**
+ * Gửi Button Template qua Send API (cho welcome message, etc.)
+ */
+async function sendButtonTemplate(recipientId, text, buttons, pageAccessToken) {
+  const token = pageAccessToken || config.fb.pageAccessToken || '';
+  try {
+    const fbButtons = (buttons || []).slice(0, 3).map((btn) => ({
+      type: 'postback',
+      title: btn.title,
+      payload: btn.payload || btn.title,
+    }));
+
+    const payload = {
+      recipient: { id: recipientId },
+      message: {
+        attachment: {
+          type: 'template',
+          payload: {
+            template_type: 'button',
+            text,
+            buttons: fbButtons,
+          },
+        },
+      },
+      messaging_type: 'RESPONSE',
+    };
+
+    const res = await axios.post(`${GRAPH}/me/messages`, payload, {
+      params: { access_token: token },
+    });
+    return { success: true, messageId: res.data.message_id };
+  } catch (err) {
+    console.error('[FB] Lỗi gửi button template:', err.response?.data || err.message);
+    return { success: false, error: err.response?.data?.error?.message || err.message };
+  }
+}
+
+/**
+ * Gửi hóa đơn (invoice) qua Facebook Receipt Template hoặc fallback text
+ */
+async function sendInvoice(recipientId, order, pageAccessToken) {
+  const token = pageAccessToken || config.fb.pageAccessToken || '';
+  const items = order.items || [];
+
+  // Try Facebook Receipt Template first
+  try {
+    const receiptElements = items.map((item) => ({
+      title: item.product_name,
+      quantity: item.quantity || 1,
+      price: item.price || 0,
+      currency: 'VND',
+    }));
+
+    const payload = {
+      recipient: { id: recipientId },
+      message: {
+        attachment: {
+          type: 'template',
+          payload: {
+            template_type: 'receipt',
+            recipient_name: order.customer_name || 'Khách hàng',
+            order_number: order.order_code,
+            currency: 'VND',
+            payment_method: 'COD',
+            summary: { total_cost: order.total || 0 },
+            elements: receiptElements,
+            ...(order.customer_address ? {
+              address: { street_1: order.customer_address, city: '', postal_code: '', state: '', country: 'VN' },
+            } : {}),
+          },
+        },
+      },
+      messaging_type: 'UPDATE',
+    };
+
+    const res = await axios.post(`${GRAPH}/me/messages`, payload, {
+      params: { access_token: token },
+    });
+    return { success: true, messageId: res.data.message_id };
+  } catch (err) {
+    console.warn('[FB] Receipt template failed, using text fallback:', err.response?.data?.error?.message || err.message);
+  }
+
+  // Fallback: formatted text invoice
+  try {
+    let text = `🧾 HÓA ĐƠN - ${order.order_code}\n`;
+    text += `━━━━━━━━━━━━━━━\n`;
+    items.forEach((item) => {
+      text += `📦 ${item.product_name} x${item.quantity || 1} — ${((item.quantity || 1) * (item.price || 0)).toLocaleString('vi-VN')}đ\n`;
+    });
+    text += `━━━━━━━━━━━━━━━\n`;
+    text += `💰 Tổng: ${(order.total || 0).toLocaleString('vi-VN')}đ\n`;
+    if (order.customer_address) {
+      text += `📍 Giao: ${order.customer_address}\n`;
+    }
+    text += `\nCảm ơn anh/chị đã đặt hàng!`;
+
+    return await sendMessageWithToken(recipientId, text, token);
+  } catch (fallbackErr) {
+    console.error('[FB] Invoice fallback also failed:', fallbackErr.message);
+    return { success: false, error: fallbackErr.message };
+  }
+}
+
 // ========================
 // OAUTH FLOW
 // ========================
@@ -233,6 +337,8 @@ module.exports = {
   getUserProfile,
   sendMessage,
   sendMessageWithToken,
+  sendButtonTemplate,
+  sendInvoice,
   getOAuthUrl,
   exchangeCodeForToken,
   exchangeLongLivedToken,
