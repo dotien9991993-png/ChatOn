@@ -71,11 +71,17 @@ CREATE TABLE IF NOT EXISTS conversations (
 CREATE TABLE IF NOT EXISTS messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-  sender TEXT NOT NULL CHECK (sender IN ('customer', 'agent')),
+  sender TEXT NOT NULL CHECK (sender IN ('customer', 'agent', 'ai')),
   text TEXT NOT NULL,
   type TEXT DEFAULT 'text',
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- 7. FUNCTION: Atomic unread increment
+CREATE OR REPLACE FUNCTION increment_unread(conv_id UUID)
+RETURNS void AS $$
+  UPDATE conversations SET unread = unread + 1 WHERE id = conv_id;
+$$ LANGUAGE sql;
 
 -- ============================================
 -- INDEXES

@@ -6,6 +6,10 @@ const fbService = require('../services/facebook');
 const { supabaseAdmin } = require('../config/supabase');
 const { processWithAI } = require('../services/ai-engine');
 
+// Dedup: track processed message IDs to handle Facebook retries
+const processedMids = new Map();
+const DEDUP_TTL = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Facebook Webhook Routes
  * - GET: Xác minh webhook (Facebook gửi khi đăng ký)
@@ -16,7 +20,10 @@ const { processWithAI } = require('../services/ai-engine');
  * Verify Facebook webhook signature (X-Hub-Signature-256)
  */
 function verifyWebhookSignature(req, res, next) {
-  if (!config.fb.appSecret) return next(); // skip if no secret configured
+  if (!config.fb.appSecret) {
+    console.error('[Webhook] appSecret not configured — rejecting request');
+    return res.sendStatus(403);
+  }
 
   const signature = req.headers['x-hub-signature-256'];
   if (!signature) {
@@ -91,10 +98,29 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
     }
 
     for (const event of entry.messaging || []) {
-      if (!event.message || !event.message.text) continue;
+      if (!event.message) continue;
+
+      // Fix 2: Skip echo messages (page's own sent messages)
+      if (event.message.is_echo) continue;
+
+      // Fix 3: Dedup — skip already-processed message IDs
+      const mid = event.message.mid;
+      if (mid && processedMids.has(mid)) continue;
+      if (mid) {
+        processedMids.set(mid, Date.now());
+        setTimeout(() => processedMids.delete(mid), DEDUP_TTL);
+      }
+
+      // Fix 4: Handle text or attachments
+      let text = event.message.text;
+      if (!text && event.message.attachments) {
+        const typeMap = { image: '[Hinh anh]', video: '[Video]', audio: '[Audio]', file: '[File]' };
+        const types = event.message.attachments.map(a => typeMap[a.type] || '[Dinh kem]');
+        text = types.join(' ');
+      }
+      if (!text) continue;
 
       const senderId = event.sender.id;
-      const text = event.message.text;
 
       console.log(`[Webhook] Message from ${senderId} (tenant: ${tenantId}): "${text}"`);
 
@@ -152,16 +178,16 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
         let conversationId;
         if (existingConv) {
           conversationId = existingConv.id;
-          // Update last message + increment unread
+          // Update last message + atomically increment unread
           await supabaseAdmin
             .from('conversations')
             .update({
               last_message: text,
               last_message_at: new Date().toISOString(),
-              unread: (await supabaseAdmin.from('conversations').select('unread').eq('id', conversationId).single()).data.unread + 1,
               status: 'active',
             })
             .eq('id', conversationId);
+          await supabaseAdmin.rpc('increment_unread', { conv_id: conversationId });
         } else {
           const { data: newConv, error: convErr } = await supabaseAdmin
             .from('conversations')
@@ -281,7 +307,10 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
                 .single();
 
               // Send AI reply to customer via Facebook
-              await fbService.sendMessageWithToken(senderId, aiResult.reply, pageAccessToken);
+              const sendResult = await fbService.sendMessageWithToken(senderId, aiResult.reply, pageAccessToken);
+              if (!sendResult.success) {
+                console.error(`[Webhook] AI reply failed to send for conversation ${conversationId}:`, sendResult.error);
+              }
 
               // Update conversation last message
               await supabaseAdmin

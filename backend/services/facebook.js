@@ -3,8 +3,9 @@ const config = require('../config');
 
 const GRAPH = config.fb.graphApiUrl;
 
-// Cache profile để không gọi Graph API mỗi tin nhắn
+// Cache profile để không gọi Graph API mỗi tin nhắn (1-hour TTL)
 const profileCache = new Map();
+const PROFILE_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 // ========================
 // MESSAGING
@@ -15,7 +16,8 @@ const profileCache = new Map();
  * Accepts optional token param for multi-tenant
  */
 async function getUserProfile(senderId, token) {
-  if (profileCache.has(senderId)) return profileCache.get(senderId);
+  const cached = profileCache.get(senderId);
+  if (cached && (Date.now() - cached.ts) < PROFILE_CACHE_TTL) return cached.profile;
 
   const accessToken = token || config.fb.pageAccessToken || '';
 
@@ -30,7 +32,7 @@ async function getUserProfile(senderId, token) {
       name: `${res.data.first_name || ''} ${res.data.last_name || ''}`.trim(),
       avatar: res.data.profile_pic || null,
     };
-    profileCache.set(senderId, profile);
+    profileCache.set(senderId, { profile, ts: Date.now() });
     return profile;
   } catch (err) {
     console.error('[FB] Lỗi lấy profile:', err.response?.data || err.message);
@@ -69,7 +71,7 @@ async function sendMessage(recipientId, text) {
 
 function getOAuthUrl(state) {
   const redirectUri = `${config.backendUrl}/auth/facebook/callback`;
-  const scopes = 'pages_show_list,pages_messaging,pages_manage_metadata,pages_read_engagement';
+  const scopes = 'pages_show_list,pages_messaging,pages_manage_metadata,pages_read_engagement,pages_manage_posts,pages_manage_engagement';
   const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${config.fb.appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}`;
 
   console.log('[FB Service] getOAuthUrl():');
@@ -180,7 +182,7 @@ async function subscribePageWebhook(pageId, pageAccessToken) {
       null,
       {
         params: {
-          subscribed_fields: 'messages,messaging_postbacks',
+          subscribed_fields: 'messages,messaging_postbacks,feed',
           access_token: pageAccessToken,
         },
       }
