@@ -123,7 +123,7 @@ export default function OrderSettings({ settings, onSettingsChange, showToast })
 
         {/* Webhook callback */}
         <div>
-          <label className="text-xs text-slate-600 font-medium block mb-1.5">Webhook callback (OMS → SalesFlow)</label>
+          <label className="text-xs text-slate-600 font-medium block mb-1.5">Webhook callback (OMS → ChatOn)</label>
           <div className="flex gap-2">
             <input
               type="text"

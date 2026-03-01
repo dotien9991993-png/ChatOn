@@ -14,8 +14,9 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Headphones,
 } from 'lucide-react';
+import chatonLogoWhite from '../assets/chaton-logo-white.svg';
+import chatonIcon from '../assets/chaton-icon.svg';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'blue' },
@@ -56,14 +57,10 @@ export default function AppSidebar({ collapsed, onToggleCollapse }) {
     >
       {/* Logo + Brand */}
       <div className={`flex items-center gap-3 px-4 h-16 flex-shrink-0 border-b border-white/10 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
-          <Headphones className="w-5 h-5 text-white" />
-        </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-white leading-tight truncate">Hoàng Nam Audio</h1>
-            <p className="text-[11px] text-blue-200/70 truncate">SalesFlow AI</p>
-          </div>
+        {collapsed ? (
+          <img src={chatonIcon} alt="ChatOn" className="w-8 h-8" />
+        ) : (
+          <img src={chatonLogoWhite} alt="ChatOn" className="h-8" />
         )}
       </div>
 

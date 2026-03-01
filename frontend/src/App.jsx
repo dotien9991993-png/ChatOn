@@ -102,7 +102,7 @@ function AppShell({ children }) {
           >
             <Menu className="w-6 h-6" />
           </button>
-          <span className="text-sm font-semibold text-slate-800">SalesFlow AI</span>
+          <span className="text-sm font-semibold text-slate-800">ChatOn</span>
           <div className="w-6" />
         </div>
 

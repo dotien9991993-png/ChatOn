@@ -318,7 +318,7 @@ function callbackHTML({ success, error }) {
   // Use '*' for postMessage targetOrigin to avoid port mismatch in dev
   return `<!DOCTYPE html>
 <html>
-<head><title>Facebook - Hoàng Nam Audio</title></head>
+<head><title>Facebook - ChatOn</title></head>
 <body style="background:#f8fafc;color:#1e293b;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
   <div style="text-align:center;background:white;padding:40px;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <p style="font-size:18px;font-weight:600">${success ? 'Kết nối thành công!' : 'Kết nối thất bại'}</p>

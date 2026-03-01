@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import PasswordInput from '../components/PasswordInput';
 import { translateAuthError } from '../utils/passwordValidation';
 import { useToast } from '../contexts/ToastContext';
+import chatonLogoLight from '../assets/chaton-logo-light.svg';
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -51,18 +52,13 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-50 to-blue-100 flex-col justify-center px-16 xl:px-24">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-12">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold text-slate-900">SalesFlow AI</span>
+          <img src={chatonLogoLight} alt="ChatOn" className="h-10" />
         </div>
 
         {/* Headline */}
         <h1 className="text-3xl xl:text-4xl font-bold text-slate-900 leading-tight mb-6">
-          Nền tảng AI Bán hàng<br />
-          Đa kênh #1 Việt Nam
+          ChatOn — Nền tảng AI<br />
+          Bán hàng Đa kênh #1 Việt Nam
         </h1>
 
         <p className="text-slate-600 text-base mb-10 max-w-md">
@@ -114,12 +110,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Small logo (visible on all screens) */}
           <div className="flex items-center gap-2.5 mb-10">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
-              <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className="text-lg font-bold text-slate-900">SalesFlow AI</span>
+            <img src={chatonLogoLight} alt="ChatOn" className="h-8" />
           </div>
 
           {/* Heading */}

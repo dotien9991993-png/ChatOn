@@ -1,0 +1,14 @@
+<svg viewBox="0 0 360 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Chat bubble icon -->
+  <rect x="2" y="6" width="52" height="42" rx="14" fill="rgba(255,255,255,0.2)" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="19" cy="27" r="4" fill="#ffffff"/>
+  <circle cx="33" cy="27" r="4" fill="#ffffff" opacity="0.7"/>
+  <circle cx="47" cy="27" r="4" fill="#ffffff" opacity="0.4"/>
+  <!-- Bubble tail -->
+  <path d="M12 48L6 58L22 48" fill="rgba(255,255,255,0.2)" stroke="#ffffff" stroke-width="2"/>
+  <!-- Power indicator -->
+  <circle cx="50" cy="10" r="6" fill="#22d3ee"/>
+  <path d="M48 10L50 8L50 10.5H52L50 12.5L50 10H48Z" fill="#fff"/>
+  <!-- Text: ChatOn -->
+  <text x="72" y="40" font-family="Outfit, sans-serif" font-weight="800" font-size="38" fill="#ffffff">Chat<tspan fill="rgba(255,255,255,0.8)">On</tspan></text>
+</svg>

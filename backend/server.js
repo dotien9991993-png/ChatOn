@@ -157,7 +157,7 @@ server.listen(config.port, () => {
 
   console.log(`
   ╔══════════════════════════════════════════════╗
-  ║   Hoàng Nam Audio — Chat Backend (Supabase)  ║
+  ║   ChatOn — Backend (Supabase)                ║
   ║   Server:  http://localhost:${config.port}            ║
   ║   Webhook: http://localhost:${config.port}/webhook/facebook  ║
   ╚══════════════════════════════════════════════╝

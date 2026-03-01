@@ -111,7 +111,7 @@ function buildOmsPayload(order, fieldMapping) {
     })),
     total: order.total,
     note: order.note || '',
-    source: 'SalesFlow AI',
+    source: 'ChatOn',
     source_order_id: order.order_code,
     source_conversation_id: order.conversation_id,
   };

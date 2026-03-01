@@ -58,7 +58,7 @@ router.post('/invite', async (req, res) => {
     }
 
     // Create user via admin API
-    const tempPassword = 'SalesFlow@' + Math.random().toString(36).slice(2, 10);
+    const tempPassword = 'ChatOn@' + Math.random().toString(36).slice(2, 10);
     const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: tempPassword,

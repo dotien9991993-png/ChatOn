@@ -6,6 +6,7 @@ import PasswordInput from '../components/PasswordInput';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 import { validatePassword, getPasswordStrength, translateAuthError } from '../utils/passwordValidation';
 import { useToast } from '../contexts/ToastContext';
+import chatonLogoLight from '../assets/chaton-logo-light.svg';
 
 export default function RegisterPage() {
   const { signUp } = useAuth();
@@ -167,10 +168,7 @@ export default function RegisterPage() {
         <div className="max-w-lg">
           {/* Brand */}
           <div className="flex items-center gap-3 mb-10">
-            <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-blue-600 text-white font-bold text-lg">
-              S
-            </div>
-            <span className="text-xl font-bold text-slate-900">SalesFlow AI</span>
+            <img src={chatonLogoLight} alt="ChatOn" className="h-10" />
           </div>
 
           {/* Headline */}
@@ -227,10 +225,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           {/* Small logo */}
           <div className="flex items-center gap-2.5 mb-8">
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-600 text-white font-bold text-sm">
-              S
-            </div>
-            <span className="text-lg font-bold text-slate-900">SalesFlow AI</span>
+            <img src={chatonLogoLight} alt="ChatOn" className="h-8" />
           </div>
 
           {/* Heading */}

@@ -1,7 +1,7 @@
 {
-  "name": "hoangnam-audio-chat-backend",
+  "name": "chaton-backend",
   "version": "1.0.0",
-  "description": "Backend quản lý chat Facebook — Hoàng Nam Audio",
+  "description": "ChatOn — Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

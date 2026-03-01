@@ -5,7 +5,7 @@ const TermsPage = () => {
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       <header className="sticky top-0 bg-white border-b flex items-center justify-between px-6 py-3">
-        <span className="text-lg font-bold text-blue-600">SalesFlow AI</span>
+        <span className="text-lg font-bold text-blue-600">ChatOn</span>
         <Link to="/login" className="text-sm text-slate-600 hover:text-blue-600">
           Quay lại
         </Link>
@@ -24,7 +24,7 @@ const TermsPage = () => {
             1. Giới thiệu
           </h2>
           <p className="text-sm text-slate-600 leading-relaxed mb-4">
-            SalesFlow AI là nền tảng quản lý bán hàng đa kênh sử dụng AI. Khi sử dụng dịch vụ, bạn đồng ý tuân theo các điều khoản này.
+            ChatOn là nền tảng quản lý bán hàng đa kênh sử dụng AI. Khi sử dụng dịch vụ, bạn đồng ý tuân theo các điều khoản này.
           </p>
         </section>
 
@@ -78,7 +78,7 @@ const TermsPage = () => {
             7. Liên hệ
           </h2>
           <p className="text-sm text-slate-600 leading-relaxed mb-4">
-            Email: support@salesflow.ai. Địa chỉ: TP. Hồ Chí Minh, Việt Nam.
+            Email: support@chaton.vn. Địa chỉ: TP. Hồ Chí Minh, Việt Nam.
           </p>
         </section>
       </main>

@@ -5,7 +5,7 @@ const PrivacyPage = () => {
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       <header className="sticky top-0 bg-white border-b flex items-center justify-between px-6 py-3">
-        <span className="text-lg font-bold text-blue-600">SalesFlow AI</span>
+        <span className="text-lg font-bold text-blue-600">ChatOn</span>
         <Link to="/login" className="text-sm text-slate-600 hover:text-blue-600">
           Quay lại
         </Link>
@@ -78,7 +78,7 @@ const PrivacyPage = () => {
             7. Liên hệ
           </h2>
           <p className="text-sm text-slate-600 leading-relaxed mb-4">
-            Mọi thắc mắc: support@salesflow.ai. DPO: privacy@salesflow.ai.
+            Mọi thắc mắc: support@chaton.vn. DPO: privacy@chaton.vn.
           </p>
         </section>
       </main>
