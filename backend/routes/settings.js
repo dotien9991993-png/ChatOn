@@ -58,13 +58,17 @@ router.get('/', async (req, res) => {
       }
     }
 
+    const accountCfg = tenant.account_config || {};
+
     // Mask tokens
     const result = {
       channels: channelsObj,
       ai: tenant.ai_config || {},
       oms: tenant.oms_config || {},
       shop: tenant.shop_info || {},
-      account: tenant.account_config || {},
+      account: accountCfg,
+      notifications: accountCfg.notifications || {},
+      billing: accountCfg.billing || { plan: 'free', usage: { messages: 0, messageLimit: 500, agents: 1, agentLimit: 1 } },
       products: tenant.products || [],
       quick_replies: tenant.quick_replies || [],
       slug: tenant.slug || '',
@@ -351,6 +355,30 @@ router.put('/account', async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true, account: req.body });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PUT /api/settings/notifications — Cập nhật notification preferences
+router.put('/notifications', async (req, res) => {
+  try {
+    const { data: tenant } = await supabaseAdmin
+      .from('tenants')
+      .select('account_config')
+      .eq('id', req.tenantId)
+      .single();
+
+    const existing = tenant?.account_config || {};
+    const updated = { ...existing, notifications: req.body };
+
+    const { error } = await supabaseAdmin
+      .from('tenants')
+      .update({ account_config: updated })
+      .eq('id', req.tenantId);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

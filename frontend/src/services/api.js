@@ -86,6 +86,10 @@ export function updateAccountSettings(data) {
   return api.put('/settings/account', data).then((res) => res.data);
 }
 
+export function updateNotificationSettings(data) {
+  return api.put('/settings/notifications', data).then((res) => res.data);
+}
+
 export function getProducts() {
   return api.get('/settings/products').then((res) => res.data);
 }

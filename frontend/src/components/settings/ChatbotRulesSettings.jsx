@@ -150,10 +150,10 @@ export default function ChatbotRulesSettings({ showToast }) {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
             <Bot className="w-5 h-5 text-blue-500" />
-            Chatbot Rule-based
+            Chatbot kịch bản
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            Kịch bản trả lời tự động theo từ khóa (chạy trước AI)
+            Kịch bản trả lời tự động theo từ khóa (ưu tiên trước AI)
           </p>
         </div>
         <button

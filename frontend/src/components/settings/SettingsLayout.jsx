@@ -12,6 +12,8 @@ import AccountSettings from './AccountSettings';
 import ShopSettings from './ShopSettings';
 import TeamSettings from './TeamSettings';
 import CommentSettings from './CommentSettings';
+import BillingSettings from './BillingSettings';
+import NotificationSettings from './NotificationSettings';
 
 /**
  * Layout trang Cài đặt: sidebar trái + nội dung phải
@@ -32,6 +34,8 @@ export default function SettingsLayout({ settings, onSettingsChange, showToast }
     team: TeamSettings,
     account: AccountSettings,
     shop: ShopSettings,
+    billing: BillingSettings,
+    notifications: NotificationSettings,
   };
 
   const ActiveComponent = sectionComponents[activeSection];

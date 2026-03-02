@@ -124,10 +124,10 @@ export default function DripCampaignSettings({ showToast }) {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
             <Zap className="w-5 h-5 text-amber-500" />
-            Drip Campaign
+            Chăm sóc tự động
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            Chuỗi tin nhắn chăm sóc tự động theo lịch trình
+            Chuỗi tin nhắn chăm sóc khách hàng theo lịch trình
           </p>
         </div>
         <button
