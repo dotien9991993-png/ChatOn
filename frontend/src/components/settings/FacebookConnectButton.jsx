@@ -59,12 +59,27 @@ export default function FacebookConnectButton({ onSuccess, onError }) {
 
       window.addEventListener('message', onMessage);
 
-      // Fallback: nếu user đóng popup mà không callback
-      const pollTimer = setInterval(() => {
+      // Fallback: khi popup đóng, kiểm tra OAuth bằng API
+      // (postMessage không hoạt động cross-origin giữa backend và frontend)
+      const pollTimer = setInterval(async () => {
         if (popup.closed) {
-          console.log('[FB Connect] Popup closed by user');
           clearInterval(pollTimer);
           window.removeEventListener('message', onMessage);
+          console.log('[FB Connect] Popup closed, checking OAuth result via API...');
+
+          try {
+            const data = await api.getFacebookPages();
+            if (data?.pages?.length > 0) {
+              console.log('[FB Connect] OAuth succeeded! Found', data.pages.length, 'pages');
+              setLoading(false);
+              onSuccess?.();
+              return;
+            }
+          } catch (e) {
+            console.log('[FB Connect] No pages found after popup close:', e.message);
+          }
+
+          console.log('[FB Connect] No OAuth result found');
           setLoading(false);
         }
       }, 500);
