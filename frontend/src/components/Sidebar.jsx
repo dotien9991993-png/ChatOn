@@ -60,9 +60,9 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose, co
   if (channelFilter !== 'all') {
     filtered = filtered.filter((c) => c.channel === channelFilter);
   }
-  // Lọc theo Pages (multi-select)
+  // Lọc theo Pages (multi-select) — conversations without page_id show for all pages
   if (!isAllPages) {
-    filtered = filtered.filter((c) => selectedPageIds.includes(c.page_id));
+    filtered = filtered.filter((c) => !c.page_id || selectedPageIds.includes(c.page_id));
   }
   // Lọc theo search
   if (search.trim()) {

@@ -57,10 +57,10 @@ export default function PageDropdown({ connectedPages, selectedPageIds, onSelect
     }
   }
 
-  // Filtered conversation count
+  // Filtered conversation count — conversations without page_id count for all pages
   const filteredCount = localSelected.size === 0 || localSelected.size === allPageIds.length
     ? totalCount
-    : conversations.filter(c => localSelected.has(c.page_id)).length;
+    : conversations.filter(c => !c.page_id || localSelected.has(c.page_id)).length;
 
   function toggleAll() {
     if (allSelected) {
