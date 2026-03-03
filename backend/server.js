@@ -161,7 +161,17 @@ app.use('/api/reports', authMiddleware, reportRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), time: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    time: new Date().toISOString(),
+    env: {
+      SUPABASE_URL: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET (' + process.env.SUPABASE_SERVICE_ROLE_KEY.length + ' chars)' : 'MISSING',
+      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? 'SET' : 'MISSING',
+      NODE_ENV: process.env.NODE_ENV || 'development',
+    },
+  });
 });
 
 // Error handler (đặt cuối cùng)
