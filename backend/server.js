@@ -32,6 +32,7 @@ const chatbotRulesRoutes = require('./routes/chatbot-rules');
 const dripCampaignRoutes = require('./routes/drip-campaigns');
 const segmentRoutes = require('./routes/segments');
 const reportRoutes = require('./routes/reports');
+const mediaRoutes = require('./routes/media');
 const path = require('path');
 const errorHandler = require('./middleware/errorHandler');
 const authMiddleware = require('./middleware/auth');
@@ -164,6 +165,7 @@ app.use('/api/chatbot-rules', authMiddleware, chatbotRulesRoutes);
 app.use('/api/drip-campaigns', authMiddleware, dripCampaignRoutes);
 app.use('/api/segments', authMiddleware, segmentRoutes);
 app.use('/api/reports', authMiddleware, reportRoutes);
+app.use('/api/media', authMiddleware, mediaRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

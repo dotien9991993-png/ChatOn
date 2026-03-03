@@ -101,9 +101,9 @@ export default function ChatPage() {
     }
   }
 
-  async function sendMessage(text) {
+  async function sendMessage(text, imageUrl) {
     if (!activeConvId) return;
-    await api.sendMessage(activeConvId, text);
+    await api.sendMessage(activeConvId, text || null, imageUrl || null);
   }
 
   async function updateStatus(status) {

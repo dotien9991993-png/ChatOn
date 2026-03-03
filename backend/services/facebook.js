@@ -59,6 +59,33 @@ async function sendMessageWithToken(recipientId, text, pageAccessToken) {
 }
 
 /**
+ * Gửi ảnh qua Send API — explicit token param (multi-tenant)
+ */
+async function sendImageWithToken(recipientId, imageUrl, pageAccessToken) {
+  const token = pageAccessToken || config.fb.pageAccessToken || '';
+  try {
+    const res = await axios.post(
+      `${GRAPH}/me/messages`,
+      {
+        recipient: { id: recipientId },
+        message: {
+          attachment: {
+            type: 'image',
+            payload: { url: imageUrl, is_reusable: true },
+          },
+        },
+        messaging_type: 'RESPONSE',
+      },
+      { params: { access_token: token } }
+    );
+    return { success: true, messageId: res.data.message_id };
+  } catch (err) {
+    console.error('[FB] Lỗi gửi ảnh:', err.response?.data || err.message);
+    return { success: false, error: err.response?.data?.error?.message || err.message };
+  }
+}
+
+/**
  * Legacy sendMessage — kept for backwards compat
  */
 async function sendMessage(recipientId, text) {
@@ -364,6 +391,7 @@ module.exports = {
   getUserProfile,
   sendMessage,
   sendMessageWithToken,
+  sendImageWithToken,
   sendButtonTemplate,
   sendInvoice,
   getOAuthUrl,

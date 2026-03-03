@@ -13,6 +13,7 @@ import CustomersPage from './pages/CustomersPage';
 import CommentsPage from './pages/CommentsPage';
 import CampaignsPage from './pages/CampaignsPage';
 import LivestreamPage from './pages/LivestreamPage';
+import MediaLibraryPage from './pages/MediaLibraryPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -181,6 +182,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppShell>
                   <ProductsPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/media"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <MediaLibraryPage />
                 </AppShell>
               </ProtectedRoute>
             }

@@ -28,8 +28,8 @@ export function getConversation(id) {
   return api.get(`/conversations/${id}`).then((res) => res.data);
 }
 
-export function sendMessage(conversationId, text) {
-  return api.post('/messages/send', { conversationId, text }).then((res) => res.data);
+export function sendMessage(conversationId, text, imageUrl) {
+  return api.post('/messages/send', { conversationId, text, imageUrl }).then((res) => res.data);
 }
 
 export function markAsRead(conversationId) {
@@ -458,6 +458,48 @@ export function getZaloStatus() {
 
 export function disconnectZaloOA(oaId) {
   return api.post('/zalo/disconnect', { oaId }).then((res) => res.data);
+}
+
+// === Media Library ===
+
+export function uploadMedia(file, categoryId) {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (categoryId) formData.append('categoryId', categoryId);
+  return api.post('/media/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
+  }).then((res) => res.data);
+}
+
+export function uploadMediaMultiple(files, categoryId) {
+  const formData = new FormData();
+  files.forEach((f) => formData.append('files', f));
+  if (categoryId) formData.append('categoryId', categoryId);
+  return api.post('/media/upload-multiple', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
+  }).then((res) => res.data);
+}
+
+export function getMedia(params = {}) {
+  return api.get('/media', { params }).then((res) => res.data);
+}
+
+export function deleteMedia(id) {
+  return api.delete(`/media/${id}`).then((res) => res.data);
+}
+
+export function getMediaCategories() {
+  return api.get('/media/categories').then((res) => res.data);
+}
+
+export function createMediaCategory(name) {
+  return api.post('/media/categories', { name }).then((res) => res.data);
+}
+
+export function deleteMediaCategory(id) {
+  return api.delete(`/media/categories/${id}`).then((res) => res.data);
 }
 
 export default api;

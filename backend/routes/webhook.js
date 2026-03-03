@@ -119,10 +119,17 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
 
       // Fix 4: Handle text or attachments
       let text = event.message.text;
-      if (!text && event.message.attachments) {
-        const typeMap = { image: '[Hình ảnh]', video: '[Video]', audio: '[Audio]', file: '[File]' };
-        const types = event.message.attachments.map(a => typeMap[a.type] || '[Đính kèm]');
-        text = types.join(' ');
+      let inboundMediaUrl = null;
+      if (event.message.attachments) {
+        const imgAttach = event.message.attachments.find(a => a.type === 'image');
+        if (imgAttach?.payload?.url) {
+          inboundMediaUrl = imgAttach.payload.url;
+        }
+        if (!text) {
+          const typeMap = { image: '[Hình ảnh]', video: '[Video]', audio: '[Audio]', file: '[File]' };
+          const types = event.message.attachments.map(a => typeMap[a.type] || '[Đính kèm]');
+          text = types.join(' ');
+        }
       }
       if (!text) continue;
 
@@ -268,7 +275,8 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
             conversation_id: conversationId,
             sender: 'customer',
             text,
-            type: 'text',
+            type: inboundMediaUrl ? 'image' : 'text',
+            media_url: inboundMediaUrl || null,
           })
           .select('*')
           .single();
@@ -313,6 +321,7 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
             from: message.sender,
             text: message.text,
             type: message.type,
+            media_url: message.media_url || null,
             timestamp: message.created_at,
             status: undefined,
           },

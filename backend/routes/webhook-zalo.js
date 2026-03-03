@@ -91,10 +91,12 @@ router.post('/', verifyZaloSignature, async (req, res) => {
 
   // Determine message text based on event type
   let text;
+  let zaloMediaUrl = null;
   if (eventName === 'user_send_text') {
     text = data.content || data.text || '';
   } else if (eventName === 'user_send_image') {
     text = '[Hình ảnh]';
+    zaloMediaUrl = data.url || data.thumb || null;
   } else if (eventName === 'user_send_file') {
     text = '[File]';
   } else if (eventName === 'user_send_sticker') {
@@ -251,7 +253,8 @@ router.post('/', verifyZaloSignature, async (req, res) => {
         conversation_id: conversationId,
         sender: 'customer',
         text,
-        type: eventName === 'user_send_text' ? 'text' : 'attachment',
+        type: zaloMediaUrl ? 'image' : (eventName === 'user_send_text' ? 'text' : 'attachment'),
+        media_url: zaloMediaUrl || null,
       })
       .select('*')
       .single();
@@ -290,6 +293,7 @@ router.post('/', verifyZaloSignature, async (req, res) => {
         from: message.sender,
         text: message.text,
         type: message.type,
+        media_url: message.media_url || null,
         timestamp: message.created_at,
       },
     });

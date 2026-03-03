@@ -9,10 +9,10 @@ const fbService = require('../services/facebook');
 
 // POST /api/messages/send — Nhân viên gửi tin nhắn trả lời khách
 router.post('/send', async (req, res) => {
-  const { conversationId, text } = req.body;
+  const { conversationId, text, imageUrl } = req.body;
 
-  if (!conversationId || !text) {
-    return res.status(400).json({ error: 'Thiếu conversationId hoặc text' });
+  if (!conversationId || (!text && !imageUrl)) {
+    return res.status(400).json({ error: 'Thiếu conversationId hoặc text/imageUrl' });
   }
 
   try {
@@ -67,21 +67,39 @@ router.post('/send', async (req, res) => {
     if (pageAccessToken && pageAccessToken !== 'paste_your_token_here' && pageAccessToken.length > 30) {
       if (conv.channel === 'zalo') {
         const zaloService = require('../services/zalo');
-        const zaloResult = await zaloService.sendMessage(recipientId, text, pageAccessToken);
-        if (!zaloResult.success) {
-          console.error('[Messages] Zalo send failed:', zaloResult.error);
+        // Send image if provided
+        if (imageUrl) {
+          const imgResult = await zaloService.sendImage(recipientId, imageUrl, pageAccessToken);
+          if (!imgResult.success) console.error('[Messages] Zalo sendImage failed:', imgResult.error);
+        }
+        // Send text if provided
+        if (text) {
+          const zaloResult = await zaloService.sendMessage(recipientId, text, pageAccessToken);
+          if (!zaloResult.success) {
+            console.error('[Messages] Zalo send failed:', zaloResult.error);
+          } else {
+            fbSent = true;
+          }
         } else {
-          fbSent = true;
+          fbSent = true; // image-only message
         }
       } else if (conv.channel === 'livechat') {
         fbSent = true; // livechat doesn't need external API
       } else {
         // Facebook (default)
-        const fbResult = await fbService.sendMessageWithToken(recipientId, text, pageAccessToken);
-        if (!fbResult.success) {
-          console.error('[Messages] Facebook send failed:', fbResult.error);
+        if (imageUrl) {
+          const imgResult = await fbService.sendImageWithToken(recipientId, imageUrl, pageAccessToken);
+          if (!imgResult.success) console.error('[Messages] Facebook sendImage failed:', imgResult.error);
+        }
+        if (text) {
+          const fbResult = await fbService.sendMessageWithToken(recipientId, text, pageAccessToken);
+          if (!fbResult.success) {
+            console.error('[Messages] Facebook send failed:', fbResult.error);
+          } else {
+            fbSent = true;
+          }
         } else {
-          fbSent = true;
+          fbSent = true; // image-only message
         }
       }
     } else if (conv.channel === 'livechat') {
@@ -96,8 +114,9 @@ router.post('/send', async (req, res) => {
       .insert({
         conversation_id: conversationId,
         sender: 'agent',
-        text,
-        type: 'text',
+        text: text || null,
+        type: imageUrl ? 'image' : 'text',
+        media_url: imageUrl || null,
       })
       .select('*')
       .single();
@@ -111,7 +130,7 @@ router.post('/send', async (req, res) => {
     const { error: updateErr } = await supabaseAdmin
       .from('conversations')
       .update({
-        last_message: text,
+        last_message: imageUrl ? (text || '[Hình ảnh]') : text,
         last_message_at: message.created_at,
       })
       .eq('id', conversationId);
@@ -126,6 +145,7 @@ router.post('/send', async (req, res) => {
       from: message.sender,
       text: message.text,
       type: message.type,
+      media_url: message.media_url || null,
       timestamp: message.created_at,
       status: fbSent ? 'sent' : 'saved',
     };

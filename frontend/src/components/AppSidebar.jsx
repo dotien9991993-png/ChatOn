@@ -8,6 +8,7 @@ import {
   Users,
   ShoppingCart,
   Package,
+  Image,
   Megaphone,
   Video,
   Settings,
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { to: '/customers', label: 'Khách hàng', icon: Users, color: 'emerald' },
   { to: '/orders', label: 'Đơn hàng', icon: ShoppingCart, color: 'amber' },
   { to: '/products', label: 'Sản phẩm', icon: Package, color: 'violet' },
+  { to: '/media', label: 'Thư viện ảnh', icon: Image, color: 'cyan' },
   { to: '/campaigns', label: 'Chiến dịch', icon: Megaphone, color: 'pink' },
   { to: '/livestream', label: 'Livestream', icon: Video, color: 'red' },
 ];

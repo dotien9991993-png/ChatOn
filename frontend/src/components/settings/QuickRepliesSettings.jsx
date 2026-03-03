@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Edit, Trash2 } from 'lucide-react';
+import { MessageSquare, Edit, Trash2, Image, X } from 'lucide-react';
 import * as api from '../../services/api';
+import MediaPicker from '../MediaPicker';
 
 /**
  * Quản lý câu trả lời mẫu (quick replies)
@@ -8,8 +9,9 @@ import * as api from '../../services/api';
 export default function QuickRepliesSettings({ settings, showToast }) {
   const [replies, setReplies] = useState(settings?.quick_replies || []);
   const [editIdx, setEditIdx] = useState(null);
-  const [form, setForm] = useState({ shortcut: '', text: '' });
+  const [form, setForm] = useState({ shortcut: '', text: '', imageUrl: '' });
   const [saving, setSaving] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     setReplies(settings?.quick_replies || []);
@@ -29,12 +31,12 @@ export default function QuickRepliesSettings({ settings, showToast }) {
   }
 
   function startAdd() {
-    setForm({ shortcut: '', text: '' });
+    setForm({ shortcut: '', text: '', imageUrl: '' });
     setEditIdx(-1);
   }
 
   function startEdit(idx) {
-    setForm({ ...replies[idx] });
+    setForm({ ...replies[idx], imageUrl: replies[idx].imageUrl || '' });
     setEditIdx(idx);
   }
 
@@ -42,11 +44,17 @@ export default function QuickRepliesSettings({ settings, showToast }) {
     if (!form.shortcut.startsWith('/')) form.shortcut = '/' + form.shortcut;
     if (!form.shortcut.trim() || !form.text.trim()) return;
 
+    const entry = {
+      shortcut: form.shortcut.trim(),
+      text: form.text.trim(),
+      ...(form.imageUrl ? { imageUrl: form.imageUrl } : {}),
+    };
+
     let newReplies;
     if (editIdx === -1) {
-      newReplies = [...replies, { shortcut: form.shortcut.trim(), text: form.text.trim() }];
+      newReplies = [...replies, entry];
     } else {
-      newReplies = replies.map((r, i) => i === editIdx ? { shortcut: form.shortcut.trim(), text: form.text.trim() } : r);
+      newReplies = replies.map((r, i) => i === editIdx ? entry : r);
     }
     save(newReplies);
     setEditIdx(null);
@@ -92,6 +100,27 @@ export default function QuickRepliesSettings({ settings, showToast }) {
               />
             </div>
           </div>
+          {/* Image attachment */}
+          <div className="mb-3">
+            <label className="block text-xs text-slate-600 mb-1">Hình ảnh đính kèm</label>
+            {form.imageUrl ? (
+              <div className="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-1.5 pr-3">
+                <img src={form.imageUrl} alt="" className="w-12 h-12 rounded object-cover" />
+                <span className="text-xs text-slate-500 truncate max-w-[150px]">Đã chọn ảnh</span>
+                <button onClick={() => setForm({ ...form, imageUrl: '' })} className="p-0.5 text-slate-400 hover:text-red-500">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setPickerOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 border border-dashed border-slate-300 rounded-lg text-sm text-slate-500 hover:border-blue-400 hover:text-blue-600 transition"
+              >
+                <Image className="w-4 h-4" />
+                Chọn ảnh
+              </button>
+            )}
+          </div>
           <p className="text-[11px] text-slate-400 mb-3">Dùng {'{shop_name}'} để tự thay bằng tên cửa hàng</p>
           <div className="flex gap-2">
             <button onClick={handleSave} disabled={saving} className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:opacity-50 transition">
@@ -112,7 +141,12 @@ export default function QuickRepliesSettings({ settings, showToast }) {
             <code className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded font-mono flex-shrink-0">
               {reply.shortcut}
             </code>
-            <p className="text-sm text-slate-700 flex-1">{reply.text}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-slate-700">{reply.text}</p>
+              {reply.imageUrl && (
+                <img src={reply.imageUrl} alt="" className="mt-1.5 w-16 h-16 rounded-lg object-cover border border-slate-200" />
+              )}
+            </div>
             <div className="flex gap-1 flex-shrink-0">
               <button onClick={() => startEdit(idx)} className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition">
                 <Edit className="w-4 h-4" />
@@ -124,6 +158,13 @@ export default function QuickRepliesSettings({ settings, showToast }) {
           </div>
         ))}
       </div>
+
+      {/* MediaPicker for quick replies */}
+      <MediaPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(url) => setForm({ ...form, imageUrl: url })}
+      />
     </div>
   );
 }

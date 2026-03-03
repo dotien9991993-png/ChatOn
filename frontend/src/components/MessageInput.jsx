@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as api from '../services/api';
-import { Send, Slash, StickyNote, MessageSquare } from 'lucide-react';
+import { Send, Slash, StickyNote, MessageSquare, Image, X } from 'lucide-react';
+import MediaPicker from './MediaPicker';
 
 /**
- * Ô nhập tin nhắn + nút gửi + quick replies (/)
+ * Ô nhập tin nhắn + nút gửi + quick replies (/) + nút ảnh
  * Enter = gửi, Shift+Enter = xuống dòng
  * Hỗ trợ 2 mode: message (gửi khách) và note (ghi chú nội bộ)
  */
@@ -14,6 +15,8 @@ export default function MessageInput({ onSend, disabled, conversationId }) {
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [qrFilter, setQrFilter] = useState('');
   const [mode, setMode] = useState('message'); // 'message' | 'note'
+  const [pendingImage, setPendingImage] = useState(null); // URL string
+  const [pickerOpen, setPickerOpen] = useState(false);
   const inputRef = useRef(null);
 
   // Load quick replies once
@@ -28,16 +31,17 @@ export default function MessageInput({ onSend, disabled, conversationId }) {
 
   async function handleSend() {
     const trimmed = text.trim();
-    if (!trimmed || sending || disabled) return;
+    if ((!trimmed && !pendingImage) || sending || disabled) return;
 
     setSending(true);
     try {
       if (mode === 'note') {
         await api.sendNote(conversationId, trimmed);
       } else {
-        await onSend(trimmed);
+        await onSend(trimmed || null, pendingImage || null);
       }
       setText('');
+      setPendingImage(null);
       setShowQuickReplies(false);
     } catch (err) {
       console.error('Lỗi gửi tin nhắn:', err);
@@ -77,6 +81,9 @@ export default function MessageInput({ onSend, disabled, conversationId }) {
 
   function selectQuickReply(qr) {
     setText(qr.text);
+    if (qr.imageUrl) {
+      setPendingImage(qr.imageUrl);
+    }
     setShowQuickReplies(false);
     inputRef.current?.focus();
   }
@@ -113,6 +120,19 @@ export default function MessageInput({ onSend, disabled, conversationId }) {
         </button>
       </div>
 
+      {/* Pending image preview */}
+      {pendingImage && (
+        <div className="mb-2 inline-flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1.5 pr-2">
+          <img src={pendingImage} alt="" className="w-12 h-12 rounded object-cover" />
+          <button
+            onClick={() => setPendingImage(null)}
+            className="p-0.5 text-slate-400 hover:text-red-500 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Quick Replies dropdown */}
       {showQuickReplies && filteredQR.length > 0 && (
         <div className="absolute bottom-full left-4 right-4 mb-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-10">
@@ -122,7 +142,10 @@ export default function MessageInput({ onSend, disabled, conversationId }) {
               onClick={() => selectQuickReply(qr)}
               className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition border-b border-slate-200 last:border-0"
             >
-              <span className="text-xs text-blue-600 font-mono">{qr.shortcut}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-blue-600 font-mono">{qr.shortcut}</span>
+                {qr.imageUrl && <Image className="w-3 h-3 text-slate-400" />}
+              </div>
               <p className="text-sm text-slate-700 truncate">{qr.text}</p>
             </button>
           ))}
@@ -130,6 +153,18 @@ export default function MessageInput({ onSend, disabled, conversationId }) {
       )}
 
       <div className="flex items-end gap-2">
+        {/* Image button (message mode only) */}
+        {!isNote && (
+          <button
+            onClick={() => setPickerOpen(true)}
+            disabled={disabled}
+            className="flex-shrink-0 w-11 h-11 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition disabled:opacity-30"
+            title="Chọn ảnh"
+          >
+            <Image className="w-5 h-5 text-slate-500" />
+          </button>
+        )}
+
         <textarea
           ref={inputRef}
           value={text}
@@ -148,7 +183,7 @@ export default function MessageInput({ onSend, disabled, conversationId }) {
         {/* Nút gửi */}
         <button
           onClick={handleSend}
-          disabled={!text.trim() || sending || disabled}
+          disabled={(!text.trim() && !pendingImage) || sending || disabled}
           className={`flex-shrink-0 w-11 h-11 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${
             isNote
               ? 'bg-amber-500 hover:bg-amber-600'
@@ -166,6 +201,13 @@ export default function MessageInput({ onSend, disabled, conversationId }) {
         Enter gửi &middot; Shift+Enter xuống dòng {!isNote && <><Slash className="w-3 h-3 inline" /> mẫu nhanh</>}
         {isNote && <span className="text-amber-500">Ghi chú chỉ hiện cho nhân viên</span>}
       </p>
+
+      {/* MediaPicker modal */}
+      <MediaPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(url) => setPendingImage(url)}
+      />
     </div>
   );
 }

@@ -106,6 +106,7 @@ router.get('/:id', async (req, res) => {
         from: m.sender,
         text: m.text,
         type: m.type,
+        media_url: m.media_url || null,
         timestamp: m.created_at,
         ai_generated: m.ai_generated || false,
         status: (m.sender === 'agent' || m.sender === 'ai') ? 'sent' : undefined,
