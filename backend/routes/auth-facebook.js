@@ -187,10 +187,22 @@ router.post('/pages/connect', async (req, res) => {
 
     if (existing) {
       console.log('[OAuth] Updating existing channel:', existing.id);
-      await supabaseAdmin.from('channels').update(channelData).eq('id', existing.id);
+      const { data: updateResult, error: updateError } = await supabaseAdmin
+        .from('channels').update(channelData).eq('id', existing.id).select();
+      if (updateError) {
+        console.error('[OAuth] UPDATE ERROR:', updateError.message, updateError.details, updateError.hint, 'code:', updateError.code);
+        throw new Error('Failed to update channel: ' + updateError.message);
+      }
+      console.log('[OAuth] Update result:', updateResult);
     } else {
-      console.log('[OAuth] Inserting new channel');
-      await supabaseAdmin.from('channels').insert(channelData);
+      console.log('[OAuth] Inserting new channel for page:', pageId);
+      const { data: insertResult, error: insertError } = await supabaseAdmin
+        .from('channels').insert(channelData).select();
+      if (insertError) {
+        console.error('[OAuth] INSERT ERROR:', insertError.message, insertError.details, insertError.hint, 'code:', insertError.code);
+        throw new Error('Failed to insert channel: ' + insertError.message);
+      }
+      console.log('[OAuth] Insert result:', insertResult);
     }
 
     console.log(`[OAuth] SUCCESS: Connected page: ${pageName} (${pageId}) for tenant ${req.tenantId}`);

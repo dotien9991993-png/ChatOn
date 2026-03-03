@@ -54,6 +54,7 @@ function startRemarketingJob(io) {
                 .eq('tenant_id', tenant.id)
                 .eq('type', 'facebook')
                 .eq('connected', true)
+                .limit(1)
                 .single();
 
               if (channel?.page_access_token) {

@@ -28,6 +28,7 @@ async function executeCampaign(campaignId, io) {
     .eq('tenant_id', tenantId)
     .eq('type', 'facebook')
     .eq('connected', true)
+    .limit(1)
     .single();
 
   const token = ch?.page_access_token;

@@ -147,6 +147,8 @@ router.post('/channels/:channel/test', async (req, res) => {
         .select('page_access_token')
         .eq('tenant_id', req.tenantId)
         .eq('type', 'facebook')
+        .eq('connected', true)
+        .limit(1)
         .single();
 
       const token = ch?.page_access_token || config.fb.pageAccessToken;

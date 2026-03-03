@@ -67,6 +67,7 @@ function startDripProcessor(io) {
               .eq('tenant_id', conv.tenant_id)
               .eq('type', 'facebook')
               .eq('connected', true)
+              .limit(1)
               .single();
 
             if (channel?.page_access_token) {

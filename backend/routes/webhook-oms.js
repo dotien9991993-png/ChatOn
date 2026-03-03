@@ -105,6 +105,7 @@ router.post('/:tenantSlug', async (req, res) => {
           .eq('tenant_id', tenantId)
           .eq('type', 'facebook')
           .eq('connected', true)
+          .limit(1)
           .single();
 
         if (channel?.page_access_token) {

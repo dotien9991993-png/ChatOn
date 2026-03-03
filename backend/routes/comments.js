@@ -16,6 +16,7 @@ async function getPageToken(tenantId) {
     .eq('tenant_id', tenantId)
     .eq('type', 'facebook')
     .eq('connected', true)
+    .limit(1)
     .single();
   return data?.page_access_token;
 }
@@ -229,6 +230,7 @@ router.post('/sync', async (req, res) => {
       .eq('tenant_id', req.tenantId)
       .eq('type', 'facebook')
       .eq('connected', true)
+      .limit(1)
       .single();
 
     // Fetch comments from Graph API

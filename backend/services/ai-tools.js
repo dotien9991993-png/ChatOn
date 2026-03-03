@@ -144,6 +144,7 @@ async function createOrder(tenantId, conversationId, input, io) {
           .eq('tenant_id', tenantId)
           .eq('type', conv?.channel || 'facebook')
           .eq('connected', true)
+          .limit(1)
           .single();
 
         if (channel?.page_access_token && customer?.external_id) {

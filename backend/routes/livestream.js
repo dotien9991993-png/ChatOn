@@ -68,6 +68,7 @@ router.post('/start', async (req, res) => {
       .eq('tenant_id', req.tenantId)
       .eq('type', 'facebook')
       .eq('connected', true)
+      .limit(1)
       .single();
 
     // Create livestream record
@@ -135,6 +136,7 @@ router.post('/:id/stop', async (req, res) => {
           .eq('tenant_id', req.tenantId)
           .eq('type', 'facebook')
           .eq('connected', true)
+          .limit(1)
           .single();
 
         if (channel?.page_access_token) {
