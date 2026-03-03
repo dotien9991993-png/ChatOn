@@ -17,10 +17,14 @@ export default function PageDropdown({ connectedPages, selectedPageIds, onSelect
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  // Sync localSelected when prop changes
+  // Sync localSelected when prop changes — [] means "all"
   useEffect(() => {
-    setLocalSelected(new Set(selectedPageIds));
-  }, [selectedPageIds]);
+    if (selectedPageIds.length === 0 && allPageIds.length > 0) {
+      setLocalSelected(new Set(allPageIds));
+    } else {
+      setLocalSelected(new Set(selectedPageIds));
+    }
+  }, [selectedPageIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Click outside to close
   useEffect(() => {
@@ -80,13 +84,19 @@ export default function PageDropdown({ connectedPages, selectedPageIds, onSelect
   }
 
   function applyFilter() {
-    onSelectionChange([...localSelected]);
+    const ids = [...localSelected];
+    // If all selected or none selected → treat as "all" (empty array)
+    onSelectionChange(ids.length === 0 || ids.length === allPageIds.length ? [] : ids);
     setIsOpen(false);
     setSearchQuery('');
   }
 
   function handleOpen() {
-    setLocalSelected(new Set(selectedPageIds));
+    // [] means "all" → show all checkboxes checked
+    const initial = selectedPageIds.length === 0
+      ? new Set(allPageIds)
+      : new Set(selectedPageIds);
+    setLocalSelected(initial);
     setSearchQuery('');
     setIsOpen(!isOpen);
   }
