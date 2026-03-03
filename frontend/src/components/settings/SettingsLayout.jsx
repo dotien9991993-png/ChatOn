@@ -41,7 +41,7 @@ export default function SettingsLayout({ settings, onSettingsChange, showToast }
   const ActiveComponent = sectionComponents[activeSection];
 
   return (
-    <div className="flex-1 flex overflow-hidden relative">
+    <div className="flex-1 flex min-h-0 overflow-hidden relative">
       {/* Sidebar */}
       <div className={`
         absolute inset-y-0 left-0 z-30 w-56 transform transition-transform duration-200
