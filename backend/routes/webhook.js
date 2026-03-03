@@ -80,6 +80,7 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
       .select('id, tenant_id, page_access_token')
       .eq('page_id', pageId)
       .eq('connected', true)
+      .limit(1)
       .single();
 
     if (chErr || !channel) {
@@ -140,6 +141,7 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
           .eq('tenant_id', tenantId)
           .eq('channel_type', 'facebook')
           .eq('external_id', senderId)
+          .limit(1)
           .single();
 
         let customerId;
@@ -178,6 +180,7 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
           .select('id')
           .eq('tenant_id', tenantId)
           .eq('customer_id', customerId)
+          .limit(1)
           .single();
 
         let conversationId;

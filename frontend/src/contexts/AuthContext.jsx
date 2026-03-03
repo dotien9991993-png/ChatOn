@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
       // Profile not found — check if this is a Google OAuth user that needs setup
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser?.app_metadata?.provider === 'google' || currentUser?.app_metadata?.providers?.includes('google')) {
-        console.log('[Auth] Google user without profile, creating tenant + profile...');
+        // Google user without profile — auto-create tenant + profile
         const fullName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
         const slugBase = (currentUser.email?.split('@')[0] || 'shop').replace(/[^a-z0-9]/gi, '-').toLowerCase();
 
@@ -64,7 +64,6 @@ export function AuthProvider({ children }) {
         }
 
         setProfile(newProfile);
-        console.log('[Auth] Google user setup complete:', newProfile.display_name);
       } else {
         console.error('[Auth] Failed to load profile:', error?.message);
       }

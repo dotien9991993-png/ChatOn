@@ -21,10 +21,7 @@ export function useSocket({ onNewMessage, onMessageSent, onConversationUpdated, 
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      if (!token) {
-        console.log('[Socket] No auth token, skipping connection');
-        return;
-      }
+      if (!token) return;
 
       socket = io(BACKEND_URL, {
         transports: ['websocket', 'polling'],
@@ -32,15 +29,8 @@ export function useSocket({ onNewMessage, onMessageSent, onConversationUpdated, 
       });
       socketRef.current = socket;
 
-      socket.on('connect', () => {
-        console.log('[Socket] Connected:', socket.id);
-        setConnected(true);
-      });
-
-      socket.on('disconnect', () => {
-        console.log('[Socket] Disconnected');
-        setConnected(false);
-      });
+      socket.on('connect', () => setConnected(true));
+      socket.on('disconnect', () => setConnected(false));
 
       socket.on('new_message', (data) => {
         onNewMessage?.(data);

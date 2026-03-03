@@ -10,14 +10,10 @@ export default function FacebookConnectButton({ onSuccess, onError }) {
 
   async function handleConnect() {
     setLoading(true);
-    console.log('[FB Connect] Button clicked, fetching OAuth URL...');
 
     try {
-      // Lấy OAuth URL từ backend
       const { url } = await api.getFacebookOAuthUrl();
-      console.log('[FB Connect] Got OAuth URL:', url);
 
-      // Mở popup
       const width = 600;
       const height = 700;
       const left = window.screenX + (window.outerWidth - width) / 2;
@@ -30,29 +26,21 @@ export default function FacebookConnectButton({ onSuccess, onError }) {
       );
 
       if (!popup) {
-        console.error('[FB Connect] Popup blocked by browser');
         onError?.('Trình duyệt đã chặn popup. Vui lòng cho phép popup và thử lại.');
         setLoading(false);
         return;
       }
 
-      console.log('[FB Connect] Popup opened, listening for postMessage...');
-
       // Lắng nghe postMessage từ popup callback
       function onMessage(event) {
-        console.log('[FB Connect] Received postMessage:', event.data, 'from origin:', event.origin);
-
         if (event.data?.type !== 'FB_OAUTH_CALLBACK') return;
 
-        console.log('[FB Connect] FB_OAUTH_CALLBACK received! success=', event.data.success);
         window.removeEventListener('message', onMessage);
         setLoading(false);
 
         if (event.data.success) {
-          console.log('[FB Connect] OAuth successful, calling onSuccess');
           onSuccess?.();
         } else {
-          console.error('[FB Connect] OAuth failed:', event.data.error);
           onError?.(event.data.error || 'Kết nối thất bại');
         }
       }
@@ -65,26 +53,23 @@ export default function FacebookConnectButton({ onSuccess, onError }) {
         if (popup.closed) {
           clearInterval(pollTimer);
           window.removeEventListener('message', onMessage);
-          console.log('[FB Connect] Popup closed, checking OAuth result via API...');
 
           try {
             const data = await api.getFacebookPages();
             if (data?.pages?.length > 0) {
-              console.log('[FB Connect] OAuth succeeded! Found', data.pages.length, 'pages');
               setLoading(false);
               onSuccess?.();
               return;
             }
-          } catch (e) {
-            console.log('[FB Connect] No pages found after popup close:', e.message);
+          } catch {
+            // No pages found after popup close
           }
 
-          console.log('[FB Connect] No OAuth result found');
           setLoading(false);
         }
       }, 500);
     } catch (err) {
-      console.error('[FB Connect] Error:', err.response?.data || err.message);
+      console.error('[FB Connect]', err.response?.data?.error || err.message);
       setLoading(false);
       onError?.(err.response?.data?.error || err.message || 'Lỗi kết nối');
     }
