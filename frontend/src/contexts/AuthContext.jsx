@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
 
-  // Load profile from profiles table
+  // Load profile from profiles table; auto-create for Google OAuth users
   const loadProfile = useCallback(async (userId) => {
     try {
       const { data, error } = await supabase
@@ -21,6 +21,50 @@ export function AuthProvider({ children }) {
 
       if (!error && data) {
         setProfile(data);
+        return;
+      }
+
+      // Profile not found — check if this is a Google OAuth user that needs setup
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser?.app_metadata?.provider === 'google' || currentUser?.app_metadata?.providers?.includes('google')) {
+        console.log('[Auth] Google user without profile, creating tenant + profile...');
+        const fullName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
+        const slugBase = (currentUser.email?.split('@')[0] || 'shop').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+
+        // Create tenant
+        const { data: tenant, error: tErr } = await supabase
+          .from('tenants')
+          .insert({
+            name: fullName,
+            slug: slugBase + '-' + Date.now().toString(36),
+          })
+          .select()
+          .single();
+
+        if (tErr) {
+          console.error('[Auth] Failed to create tenant for Google user:', tErr.message);
+          return;
+        }
+
+        // Create profile
+        const { data: newProfile, error: pErr } = await supabase
+          .from('profiles')
+          .insert({
+            id: currentUser.id,
+            tenant_id: tenant.id,
+            display_name: fullName,
+            role: 'owner',
+          })
+          .select('id, tenant_id, display_name, role')
+          .single();
+
+        if (pErr) {
+          console.error('[Auth] Failed to create profile for Google user:', pErr.message);
+          return;
+        }
+
+        setProfile(newProfile);
+        console.log('[Auth] Google user setup complete:', newProfile.display_name);
       } else {
         console.error('[Auth] Failed to load profile:', error?.message);
       }
