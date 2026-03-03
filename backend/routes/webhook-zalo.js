@@ -94,7 +94,7 @@ router.post('/', verifyZaloSignature, async (req, res) => {
   if (eventName === 'user_send_text') {
     text = data.content || data.text || '';
   } else if (eventName === 'user_send_image') {
-    text = '[Hinh anh]';
+    text = '[Hình ảnh]';
   } else if (eventName === 'user_send_file') {
     text = '[File]';
   } else if (eventName === 'user_send_sticker') {
@@ -106,9 +106,9 @@ router.post('/', verifyZaloSignature, async (req, res) => {
   } else if (eventName === 'user_send_video') {
     text = '[Video]';
   } else if (eventName === 'user_send_location') {
-    text = '[Vi tri]';
+    text = '[Vị trí]';
   } else {
-    text = '[Tin nhan]';
+    text = '[Tin nhắn]';
   }
 
   if (!text) return;
@@ -161,7 +161,7 @@ router.post('/', verifyZaloSignature, async (req, res) => {
           tenant_id: tenantId,
           channel_type: 'zalo',
           external_id: senderId,
-          name: profile.name || 'Khach hang Zalo',
+          name: profile.name || 'Khách hàng Zalo',
           avatar: profile.avatar,
         })
         .select('id')

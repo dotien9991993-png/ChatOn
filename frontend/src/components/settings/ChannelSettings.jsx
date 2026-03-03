@@ -65,18 +65,18 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
   // Zalo OA handlers
   async function handleZaloOAuthSuccess() {
     await loadZaloChannels();
-    showToast('Ket noi Zalo OA thanh cong!', 'success');
+    showToast('Kết nối Zalo OA thành công!', 'success');
   }
 
   async function handleZaloDisconnect(oaId, oaName) {
-    if (!window.confirm(`Ngat ket noi "${oaName}"?`)) return;
+    if (!window.confirm(`Ngắt kết nối "${oaName}"?`)) return;
     setZaloDisconnecting(oaId);
     try {
       await api.disconnectZaloOA(oaId);
-      showToast(`Da ngat ket noi ${oaName}`, 'info');
+      showToast(`Đã ngắt kết nối ${oaName}`, 'info');
       await loadZaloChannels();
     } catch (err) {
-      showToast('Loi: ' + (err.response?.data?.error || err.message), 'error');
+      showToast('Lỗi: ' + (err.response?.data?.error || err.message), 'error');
     } finally {
       setZaloDisconnecting(null);
     }
@@ -293,7 +293,7 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
             <div className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${zaloChannels.length > 0 ? 'bg-green-500' : 'bg-slate-500'}`} />
               <span className={`text-xs font-medium ${zaloChannels.length > 0 ? 'text-green-600' : 'text-slate-500'}`}>
-                {zaloChannels.length > 0 ? `${zaloChannels.length} OA` : 'Chua ket noi'}
+                {zaloChannels.length > 0 ? `${zaloChannels.length} OA` : 'Chưa kết nối'}
               </span>
             </div>
           </div>
@@ -322,12 +322,12 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
                             ch.warning ? 'text-amber-600' :
                             'text-green-600'
                           }`}>
-                            {ch.tokenError ? 'Loi token' :
-                             ch.hoursLeft != null ? `Token: con ${ch.hoursLeft}h` : 'Token OK'}
+                            {ch.tokenError ? 'Lỗi token' :
+                             ch.hoursLeft != null ? `Token: còn ${ch.hoursLeft}h` : 'Token OK'}
                           </span>
                           {ch.connectedAt && (
                             <span className="text-[11px] text-slate-400">
-                              Ket noi: {new Date(ch.connectedAt).toLocaleDateString('vi-VN')}
+                              Kết nối: {new Date(ch.connectedAt).toLocaleDateString('vi-VN')}
                             </span>
                           )}
                         </div>
@@ -337,7 +337,7 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
                         disabled={zaloDisconnecting === ch.oaId}
                         className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 transition flex-shrink-0"
                       >
-                        {zaloDisconnecting === ch.oaId ? 'Dang ngat...' : 'Ngat'}
+                        {zaloDisconnecting === ch.oaId ? 'Đang ngắt...' : 'Ngắt'}
                       </button>
                     </div>
                   ))}
@@ -347,13 +347,13 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
                 {zaloChannels.some(ch => ch.tokenError || ch.critical) && (
                   <div className="text-xs px-3 py-2.5 rounded-lg flex items-center gap-2 bg-red-50 text-red-600 border border-red-200">
                     <span>!</span>
-                    <span>Co OA bi loi token. Ket noi lai de cap nhat.</span>
+                    <span>Có OA bị lỗi token. Kết nối lại để cập nhật.</span>
                   </div>
                 )}
 
                 {/* Webhook URL */}
                 <div>
-                  <label className="text-xs text-slate-600 font-medium block mb-1.5">Webhook URL (cau hinh trong Zalo OA Dashboard)</label>
+                  <label className="text-xs text-slate-600 font-medium block mb-1.5">Webhook URL (cấu hình trong Zalo OA Dashboard)</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -389,9 +389,9 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
                   <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-50 flex items-center justify-center">
                     <span className="text-3xl font-bold text-[#0068ff]">Z</span>
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-800 mb-1">Ket noi Zalo Official Account</h3>
+                  <h3 className="text-sm font-semibold text-slate-800 mb-1">Kết nối Zalo Official Account</h3>
                   <p className="text-xs text-slate-500 mb-5 max-w-sm mx-auto">
-                    Dang nhap Zalo va cap quyen cho OA de tu dong nhan tin nhan tu khach hang
+                    Đăng nhập Zalo và cấp quyền cho OA để tự động nhận tin nhắn từ khách hàng
                   </p>
                   <ZaloConnectButton
                     onSuccess={handleZaloOAuthSuccess}
@@ -402,7 +402,7 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
                 {/* Guide */}
                 <div className="border-t border-slate-200 pt-3 space-y-2">
                   <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Sau khi ket noi, cau hinh Webhook URL trong{' '}
+                    Sau khi kết nối, cấu hình Webhook URL trong{' '}
                     <a href="https://developers.zalo.me" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                       Zalo Developer Console
                     </a>:

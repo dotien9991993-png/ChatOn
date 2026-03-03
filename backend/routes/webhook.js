@@ -120,8 +120,8 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
       // Fix 4: Handle text or attachments
       let text = event.message.text;
       if (!text && event.message.attachments) {
-        const typeMap = { image: '[Hinh anh]', video: '[Video]', audio: '[Audio]', file: '[File]' };
-        const types = event.message.attachments.map(a => typeMap[a.type] || '[Dinh kem]');
+        const typeMap = { image: '[Hình ảnh]', video: '[Video]', audio: '[Audio]', file: '[File]' };
+        const types = event.message.attachments.map(a => typeMap[a.type] || '[Đính kèm]');
         text = types.join(' ');
       }
       if (!text) continue;

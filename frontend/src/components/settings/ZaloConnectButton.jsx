@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import * as api from '../../services/api';
 
 /**
- * Nut "Ket noi Zalo OA" — mo popup OAuth
- * Sau khi OAuth thanh cong, goi onSuccess de reload channels
+ * Nút "Kết nối Zalo OA" — mở popup OAuth
+ * Sau khi OAuth thành công, gọi onSuccess để reload channels
  */
 export default function ZaloConnectButton({ onSuccess, onError }) {
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function ZaloConnectButton({ onSuccess, onError }) {
       );
 
       if (!popup) {
-        onError?.('Trinh duyet da chan popup. Vui long cho phep popup va thu lai.');
+        onError?.('Trình duyệt đã chặn popup. Vui lòng cho phép popup và thử lại.');
         setLoading(false);
         return;
       }
@@ -41,7 +41,7 @@ export default function ZaloConnectButton({ onSuccess, onError }) {
         if (event.data.success) {
           onSuccess?.();
         } else {
-          onError?.(event.data.error || 'Ket noi that bai');
+          onError?.(event.data.error || 'Kết nối thất bại');
         }
       }
 
@@ -70,7 +70,7 @@ export default function ZaloConnectButton({ onSuccess, onError }) {
     } catch (err) {
       console.error('[Zalo Connect]', err.response?.data?.error || err.message);
       setLoading(false);
-      onError?.(err.response?.data?.error || err.message || 'Loi ket noi');
+      onError?.(err.response?.data?.error || err.message || 'Lỗi kết nối');
     }
   }
 
@@ -86,12 +86,12 @@ export default function ZaloConnectButton({ onSuccess, onError }) {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <span>Dang ket noi...</span>
+          <span>Đang kết nối...</span>
         </>
       ) : (
         <>
           <span className="w-5 h-5 flex items-center justify-center font-bold text-sm">Z</span>
-          <span>Ket noi Zalo OA</span>
+          <span>Kết nối Zalo OA</span>
         </>
       )}
     </button>
