@@ -161,13 +161,13 @@ router.post('/pages/connect', async (req, res) => {
       : null;
     console.log('[OAuth] Step 2 OK: Token expires at:', expiresAt || 'never');
 
-    // Upsert channel row
+    // Upsert channel row by tenant_id + page_id (supports multiple pages)
     console.log('[OAuth] Step 3: Upserting channel in Supabase...');
     const { data: existing } = await supabaseAdmin
       .from('channels')
       .select('id')
       .eq('tenant_id', req.tenantId)
-      .eq('type', 'facebook')
+      .eq('page_id', pageId)
       .single();
 
     const channelData = {
@@ -218,19 +218,24 @@ router.post('/pages/connect', async (req, res) => {
 //    Protected — update channels row
 // ========================
 router.post('/pages/disconnect', async (req, res) => {
+  const { pageId } = req.body;
   console.log('[OAuth] === /pages/disconnect called ===');
-  console.log('[OAuth] tenantId:', req.tenantId);
+  console.log('[OAuth] tenantId:', req.tenantId, 'pageId:', pageId);
+
+  if (!pageId) {
+    return res.status(400).json({ error: 'Thiếu pageId' });
+  }
 
   const { data: ch } = await supabaseAdmin
     .from('channels')
     .select('*')
     .eq('tenant_id', req.tenantId)
-    .eq('type', 'facebook')
+    .eq('page_id', pageId)
     .single();
 
-  if (!ch?.page_id) {
-    console.error('[OAuth] No connected page found');
-    return res.status(400).json({ error: 'Chưa có Page nào được kết nối.' });
+  if (!ch) {
+    console.error('[OAuth] No connected page found for pageId:', pageId);
+    return res.status(400).json({ error: 'Không tìm thấy Page này.' });
   }
 
   try {
@@ -243,22 +248,13 @@ router.post('/pages/disconnect', async (req, res) => {
     console.error('[OAuth] Unsubscribe error (non-fatal):', err.message);
   }
 
+  // Delete channel row (instead of clearing fields)
   await supabaseAdmin
     .from('channels')
-    .update({
-      connected: false,
-      page_id: null,
-      page_name: null,
-      page_access_token: null,
-      connected_at: null,
-      config: {},
-    })
+    .delete()
     .eq('id', ch.id);
 
-  // Clear user token
-  oauthUserTokens.delete(req.tenantId);
-
-  console.log(`[OAuth] SUCCESS: Disconnected Facebook page for tenant ${req.tenantId}`);
+  console.log(`[OAuth] SUCCESS: Disconnected page ${pageId} for tenant ${req.tenantId}`);
   res.json({ success: true });
 });
 
@@ -270,44 +266,58 @@ router.get('/token-status', async (req, res) => {
   console.log('[OAuth] === /token-status called ===');
   console.log('[OAuth] tenantId:', req.tenantId);
 
-  const { data: ch } = await supabaseAdmin
+  const { data: channels } = await supabaseAdmin
     .from('channels')
-    .select('connected, page_access_token')
+    .select('*')
     .eq('tenant_id', req.tenantId)
     .eq('type', 'facebook')
-    .single();
+    .eq('connected', true);
 
-  if (!ch?.connected || !ch?.page_access_token) {
-    console.log('[OAuth] No connected channel found');
-    return res.json({ connected: false });
+  if (!channels || channels.length === 0) {
+    console.log('[OAuth] No connected channels found');
+    return res.json({ channels: [] });
   }
 
-  try {
-    const tokenInfo = await fbService.debugToken(ch.page_access_token);
+  // Check token status for each channel
+  const result = [];
+  for (const ch of channels) {
+    const entry = {
+      id: ch.id,
+      pageId: ch.page_id,
+      pageName: ch.page_name,
+      pagePicture: ch.config?.pagePicture || '',
+      connectedAt: ch.connected_at,
+      connected: true,
+      valid: true,
+      daysLeft: null,
+      warning: false,
+      critical: false,
+    };
 
-    if (!tokenInfo) {
-      console.log('[OAuth] Could not debug token');
-      return res.json({ connected: true, valid: false, error: 'Không kiểm tra được token' });
+    try {
+      if (ch.page_access_token) {
+        const tokenInfo = await fbService.debugToken(ch.page_access_token);
+        if (tokenInfo) {
+          const now = Math.floor(Date.now() / 1000);
+          const expiresAt = tokenInfo.expires_at || 0;
+          const daysLeft = expiresAt > 0 ? Math.floor((expiresAt - now) / 86400) : null;
+          entry.valid = tokenInfo.is_valid !== false;
+          entry.expiresAt = expiresAt > 0 ? new Date(expiresAt * 1000).toISOString() : null;
+          entry.daysLeft = daysLeft;
+          entry.warning = daysLeft !== null && daysLeft < 7;
+          entry.critical = daysLeft !== null && daysLeft < 3;
+        }
+      }
+    } catch (err) {
+      entry.valid = false;
+      entry.error = err.message;
     }
 
-    const now = Math.floor(Date.now() / 1000);
-    const expiresAt = tokenInfo.expires_at || 0;
-    const daysLeft = expiresAt > 0 ? Math.floor((expiresAt - now) / 86400) : null;
-
-    console.log('[OAuth] Token status: valid=', tokenInfo.is_valid, 'daysLeft=', daysLeft);
-
-    res.json({
-      connected: true,
-      valid: tokenInfo.is_valid !== false,
-      expiresAt: expiresAt > 0 ? new Date(expiresAt * 1000).toISOString() : null,
-      daysLeft,
-      warning: daysLeft !== null && daysLeft < 7,
-      critical: daysLeft !== null && daysLeft < 3,
-    });
-  } catch (err) {
-    console.error('[OAuth] Token status error:', err.message);
-    res.json({ connected: true, valid: false, error: err.message });
+    result.push(entry);
   }
+
+  console.log('[OAuth] Token status:', result.length, 'channels');
+  res.json({ channels: result });
 });
 
 // ========================

@@ -5,7 +5,7 @@ import * as api from '../../services/api';
  * Modal chọn Facebook Page sau khi OAuth thành công
  * Hiển thị danh sách pages → user chọn 1 → connect
  */
-export default function PageSelector({ onConnected, onClose, showToast }) {
+export default function PageSelector({ connectedPageIds = [], onConnected, onClose, showToast }) {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(null); // pageId đang connect
@@ -13,7 +13,7 @@ export default function PageSelector({ onConnected, onClose, showToast }) {
 
   useEffect(() => {
     loadPages();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadPages() {
     setLoading(true);
@@ -30,6 +30,10 @@ export default function PageSelector({ onConnected, onClose, showToast }) {
       setLoading(false);
     }
   }
+
+  // Filter out already-connected pages
+  const availablePages = pages.filter(p => !connectedPageIds.includes(p.id));
+  const allConnected = pages.length > 0 && availablePages.length === 0;
 
   async function handleSelectPage(page) {
     setConnecting(page.id);
@@ -92,9 +96,21 @@ export default function PageSelector({ onConnected, onClose, showToast }) {
             </div>
           )}
 
-          {!loading && !error && pages.length > 0 && (
+          {!loading && !error && allConnected && (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-green-50 flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-slate-800">Tất cả Pages đã được kết nối</p>
+              <p className="text-xs text-slate-500 mt-1">Bạn đã kết nối tất cả {pages.length} Pages từ tài khoản Facebook.</p>
+            </div>
+          )}
+
+          {!loading && !error && availablePages.length > 0 && (
             <div className="space-y-2">
-              {pages.map((page) => (
+              {availablePages.map((page) => (
                 <button
                   key={page.id}
                   onClick={() => handleSelectPage(page)}

@@ -12,13 +12,11 @@ import { Copy, Check } from 'lucide-react';
  */
 export default function ChannelSettings({ settings, onSettingsChange, showToast }) {
   const channels = settings?.channels || {};
-  const fbConnected = channels.facebook?.connected;
 
-  // OAuth flow state
+  // Multi-page Facebook state
+  const [fbChannels, setFbChannels] = useState([]);
   const [showPageSelector, setShowPageSelector] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [tokenStatus, setTokenStatus] = useState(null);
-  const [disconnecting, setDisconnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(null); // pageId being disconnected
 
   // Other channels state
   const [zaloValues, setZaloValues] = useState({});
@@ -36,41 +34,47 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
     if (channels.instagram) setIgValues(channels.instagram);
   }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Check token status khi đã kết nối
+  // Load all Facebook channels
   useEffect(() => {
-    if (fbConnected) {
-      api.getFacebookTokenStatus()
-        .then(setTokenStatus)
-        .catch(() => {});
+    loadFbChannels();
+  }, []);
+
+  async function loadFbChannels() {
+    try {
+      const data = await api.getFacebookTokenStatus();
+      setFbChannels(data.channels || []);
+    } catch {
+      setFbChannels([]);
     }
-  }, [fbConnected]);
+  }
 
   // OAuth thành công → hiện page selector
   function handleOAuthSuccess() {
     setShowPageSelector(true);
   }
 
-  // Chọn page xong → reload settings
+  // Chọn page xong → reload
   async function handlePageConnected() {
     setShowPageSelector(false);
+    await loadFbChannels();
     const updated = await api.getSettings();
     onSettingsChange(updated);
   }
 
-  // Ngắt kết nối Facebook (OAuth)
-  async function handleFbDisconnect() {
-    if (!window.confirm('Bạn chắc chắn muốn ngắt kết nối Facebook Page? Webhook sẽ bị hủy.')) return;
-    setDisconnecting(true);
+  // Ngắt kết nối 1 Facebook Page
+  async function handleFbDisconnect(pageId, pageName) {
+    if (!window.confirm(`Ngắt kết nối "${pageName}"? Webhook sẽ bị hủy.`)) return;
+    setDisconnecting(pageId);
     try {
-      await api.disconnectFacebookPage();
-      showToast('Đã ngắt kết nối Facebook', 'info');
-      setTokenStatus(null);
+      await api.disconnectFacebookPage(pageId);
+      showToast(`Đã ngắt kết nối ${pageName}`, 'info');
+      await loadFbChannels();
       const updated = await api.getSettings();
       onSettingsChange(updated);
     } catch (err) {
       showToast('Lỗi: ' + (err.response?.data?.error || err.message), 'error');
     } finally {
-      setDisconnecting(false);
+      setDisconnecting(null);
     }
   }
 
@@ -126,7 +130,7 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
       <p className="text-sm text-slate-500 mb-6">Liên kết các trang mạng xã hội để nhận và trả lời tin nhắn khách hàng</p>
 
       <div className="space-y-5">
-        {/* ======== FACEBOOK — OAuth Flow ======== */}
+        {/* ======== FACEBOOK — Multi-Page Support ======== */}
         <div className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
@@ -139,162 +143,76 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
               <span className="text-base font-semibold text-slate-800">Facebook Messenger</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${fbConnected ? 'bg-green-500' : 'bg-slate-500'}`} />
-              <span className={`text-xs font-medium ${fbConnected ? 'text-green-600' : 'text-slate-500'}`}>
-                {fbConnected ? 'Đã kết nối' : 'Chưa kết nối'}
+              <span className={`w-2 h-2 rounded-full ${fbChannels.length > 0 ? 'bg-green-500' : 'bg-slate-500'}`} />
+              <span className={`text-xs font-medium ${fbChannels.length > 0 ? 'text-green-600' : 'text-slate-500'}`}>
+                {fbChannels.length > 0 ? `${fbChannels.length} Page` : 'Chưa kết nối'}
               </span>
             </div>
           </div>
 
           <div className="px-5 py-4 space-y-4">
-            {fbConnected ? (
+            {fbChannels.length > 0 ? (
               <>
-                {/* === Đã kết nối: Hiện thông tin Page === */}
-                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
-                  {channels.facebook.pagePicture ? (
-                    <img src={channels.facebook.pagePicture} alt="" className="w-12 h-12 rounded-lg object-cover" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">
-                      {channels.facebook.pageName?.charAt(0) || 'P'}
+                {/* === Danh sách Pages đã kết nối === */}
+                <div className="space-y-3">
+                  {fbChannels.map((ch) => (
+                    <div key={ch.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
+                      {ch.pagePicture ? (
+                        <img src={ch.pagePicture} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">
+                          {ch.pageName?.charAt(0) || 'P'}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{ch.pageName || 'Facebook Page'}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Page ID: {ch.pageId || '—'}
+                        </p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className={`text-[11px] font-medium ${
+                            ch.critical ? 'text-red-600' :
+                            ch.warning ? 'text-amber-600' :
+                            'text-green-600'
+                          }`}>
+                            Token: {ch.daysLeft != null
+                              ? `Còn ${ch.daysLeft} ngày`
+                              : ch.valid === false
+                                ? 'Hết hạn'
+                                : 'Vĩnh viễn'}
+                          </span>
+                          {ch.connectedAt && (
+                            <span className="text-[11px] text-slate-400">
+                              Kết nối: {new Date(ch.connectedAt).toLocaleDateString('vi-VN')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleFbDisconnect(ch.pageId, ch.pageName)}
+                        disabled={disconnecting === ch.pageId}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 transition flex-shrink-0"
+                      >
+                        {disconnecting === ch.pageId ? 'Đang ngắt...' : 'Ngắt'}
+                      </button>
                     </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-800">{channels.facebook.pageName || 'Facebook Page'}</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Page ID: {channels.facebook.pageId || '—'}
-                    </p>
-                  </div>
+                  ))}
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-                    <p className="text-[11px] text-slate-500">Trạng thái webhook</p>
-                    <p className="text-sm text-green-600 font-medium">Hoạt động</p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-                    <p className="text-[11px] text-slate-500">Tin nhắn nhận được</p>
-                    <p className="text-sm text-slate-700 font-medium">{(channels.facebook.messageCount || 0).toLocaleString()}</p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-                    <p className="text-[11px] text-slate-500">Kết nối lúc</p>
-                    <p className="text-sm text-slate-700 font-medium">
-                      {channels.facebook.connectedAt
-                        ? new Date(channels.facebook.connectedAt).toLocaleDateString('vi-VN')
-                        : '—'}
-                    </p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-                    <p className="text-[11px] text-slate-500">Token</p>
-                    <p className={`text-sm font-medium ${
-                      tokenStatus?.critical ? 'text-red-600' :
-                      tokenStatus?.warning ? 'text-amber-600' :
-                      'text-green-600'
-                    }`}>
-                      {tokenStatus?.daysLeft != null
-                        ? `Còn ${tokenStatus.daysLeft} ngày`
-                        : tokenStatus?.valid === false
-                          ? 'Hết hạn'
-                          : 'Vĩnh viễn'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Token warning */}
-                {tokenStatus?.warning && (
-                  <div className={`text-xs px-3 py-2.5 rounded-lg flex items-center gap-2 ${
-                    tokenStatus.critical
-                      ? 'bg-red-50 text-red-600 border border-red-200'
-                      : 'bg-amber-50 text-amber-600 border border-amber-200'
-                  }`}>
-                    <span>{tokenStatus.critical ? '!!' : '!'}</span>
-                    <span>
-                      {tokenStatus.critical
-                        ? `Token sắp hết hạn (${tokenStatus.daysLeft} ngày). Vui lòng kết nối lại.`
-                        : `Token còn ${tokenStatus.daysLeft} ngày. Nên kết nối lại sớm.`}
-                    </span>
+                {/* Token warnings */}
+                {fbChannels.some(ch => ch.warning) && (
+                  <div className="text-xs px-3 py-2.5 rounded-lg flex items-center gap-2 bg-amber-50 text-amber-600 border border-amber-200">
+                    <span>!</span>
+                    <span>Có Page sắp hết hạn token. Kết nối lại để gia hạn.</span>
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    onClick={() => handleTest('facebook')}
-                    disabled={testing.facebook}
-                    className="text-xs px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 transition"
-                  >
-                    {testing.facebook ? 'Đang test...' : 'Test kết nối'}
-                  </button>
-
-                  {/* Kết nối lại (refresh token) */}
+                {/* Kết nối thêm Page */}
+                <div className="flex items-center justify-center pt-2">
                   <FacebookConnectButton
                     onSuccess={handleOAuthSuccess}
                     onError={(err) => showToast(err, 'error')}
                   />
-
-                  <div className="flex-1" />
-
-                  <button
-                    onClick={handleFbDisconnect}
-                    disabled={disconnecting}
-                    className="text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 transition"
-                  >
-                    {disconnecting ? 'Đang ngắt...' : 'Ngắt kết nối'}
-                  </button>
-                </div>
-
-                {/* Test result */}
-                {testResults.facebook && (
-                  <div className={`text-xs px-3 py-2 rounded-lg ${testResults.facebook.success ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                    {testResults.facebook.success
-                      ? `Kết nối OK${testResults.facebook.latency ? ` (${testResults.facebook.latency}ms)` : ''}${testResults.facebook.pageInfo ? ` — Page: ${testResults.facebook.pageInfo.name}` : ''}`
-                      : `Thất bại: ${testResults.facebook.error}`
-                    }
-                  </div>
-                )}
-
-                {/* Cài đặt nâng cao (ẩn mặc định) */}
-                <div className="border-t border-slate-200 pt-3">
-                  <button
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                    className="text-xs text-slate-500 hover:text-slate-700 transition flex items-center gap-1"
-                  >
-                    <svg className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    Cài đặt nâng cao
-                  </button>
-                  {showAdvanced && (
-                    <div className="mt-3 space-y-3">
-                      <div>
-                        <label className="text-xs text-slate-600 font-medium block mb-1.5">Verify Token</label>
-                        <input
-                          type="text"
-                          value={channels.facebook.verifyToken || ''}
-                          readOnly
-                          className="w-full bg-slate-50 border border-slate-200 text-sm text-slate-700 rounded-lg px-3 py-2.5 outline-none font-mono"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-slate-600 font-medium block mb-1.5">Webhook URL</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={`${webhookBase}/webhook/facebook`}
-                            readOnly
-                            className="flex-1 bg-slate-50 border border-slate-200 text-sm text-slate-700 rounded-lg px-3 py-2.5 outline-none font-mono"
-                          />
-                          <button
-                            onClick={() => navigator.clipboard.writeText(`${webhookBase}/webhook/facebook`)}
-                            className="px-2.5 bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition text-sm"
-                            title="Copy"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </>
             ) : (
@@ -426,6 +344,7 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
       {/* Page Selector Modal */}
       {showPageSelector && (
         <PageSelector
+          connectedPageIds={fbChannels.map(ch => ch.pageId)}
           onConnected={handlePageConnected}
           onClose={() => setShowPageSelector(false)}
           showToast={showToast}

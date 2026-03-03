@@ -434,8 +434,8 @@ export function connectFacebookPage(pageData) {
   return api.post('/facebook/pages/connect', pageData).then((res) => res.data);
 }
 
-export function disconnectFacebookPage() {
-  return api.post('/facebook/pages/disconnect').then((res) => res.data);
+export function disconnectFacebookPage(pageId) {
+  return api.post('/facebook/pages/disconnect', { pageId }).then((res) => res.data);
 }
 
 export function getFacebookTokenStatus() {
