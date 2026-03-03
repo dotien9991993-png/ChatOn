@@ -1,30 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const FB_ICON = (
-  <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-  </svg>
-);
-
 /**
  * PageDropdown — dropdown chọn Pages giống Harasocial
+ *
+ * Convention: selectedPageIds = [] means "all pages"
+ *             selectedPageIds = [id1, id2] means "only those pages"
+ *
+ * Checkbox changes apply IMMEDIATELY (no Apply button needed).
  */
 export default function PageDropdown({ connectedPages, selectedPageIds, onSelectionChange, conversations, maxPages = 5 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [localSelected, setLocalSelected] = useState(new Set(selectedPageIds));
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-
-  // Sync localSelected when prop changes — [] means "all"
-  useEffect(() => {
-    if (selectedPageIds.length === 0 && allPageIds.length > 0) {
-      setLocalSelected(new Set(allPageIds));
-    } else {
-      setLocalSelected(new Set(selectedPageIds));
-    }
-  }, [selectedPageIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Click outside to close
   useEffect(() => {
@@ -40,8 +29,13 @@ export default function PageDropdown({ connectedPages, selectedPageIds, onSelect
   if (!connectedPages || connectedPages.length === 0) return null;
 
   const allPageIds = connectedPages.map(p => p.pageId || p.page_id);
-  const allSelected = allPageIds.length > 0 && allPageIds.every(id => localSelected.has(id));
-  const someSelected = allPageIds.some(id => localSelected.has(id)) && !allSelected;
+
+  // Derive checkbox state from prop — [] means "all"
+  const effectiveSelected = new Set(
+    selectedPageIds.length === 0 ? allPageIds : selectedPageIds
+  );
+  const allSelected = allPageIds.length > 0 && allPageIds.every(id => effectiveSelected.has(id));
+  const someSelected = allPageIds.some(id => effectiveSelected.has(id)) && !allSelected;
 
   // Filter pages by search
   const filteredPages = connectedPages.filter(p => {
@@ -52,56 +46,45 @@ export default function PageDropdown({ connectedPages, selectedPageIds, onSelect
     return name.includes(q) || id.includes(q);
   });
 
-  // Count conversations per page
-  const countByPage = {};
-  let totalCount = conversations.length;
-  for (const conv of conversations) {
-    if (conv.page_id) {
-      countByPage[conv.page_id] = (countByPage[conv.page_id] || 0) + 1;
-    }
-  }
-
-  // Filtered conversation count — conversations without page_id count for all pages
-  const filteredCount = localSelected.size === 0 || localSelected.size === allPageIds.length
+  // Count conversations
+  const totalCount = conversations.length;
+  const filteredCount = allSelected
     ? totalCount
-    : conversations.filter(c => !c.page_id || localSelected.has(c.page_id)).length;
+    : conversations.filter(c => !c.page_id || effectiveSelected.has(c.page_id)).length;
 
+  // Toggle "Select All" — immediate apply
   function toggleAll() {
     if (allSelected) {
-      setLocalSelected(new Set());
+      // Can't uncheck all ([] = all), so this is a no-op
+      return;
+    }
+    // Check all → onSelectionChange([]) = "all"
+    onSelectionChange([]);
+  }
+
+  // Toggle individual page — immediate apply
+  function togglePage(pageId) {
+    const next = new Set(effectiveSelected);
+    if (next.has(pageId)) {
+      next.delete(pageId);
     } else {
-      setLocalSelected(new Set(allPageIds));
+      next.add(pageId);
+    }
+    const ids = [...next];
+    // If all selected or none → normalize to [] = "all"
+    if (ids.length === 0 || ids.length === allPageIds.length) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(ids);
     }
   }
 
-  function togglePage(pageId) {
-    setLocalSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(pageId)) next.delete(pageId);
-      else next.add(pageId);
-      return next;
-    });
-  }
-
-  function applyFilter() {
-    const ids = [...localSelected];
-    // If all selected or none selected → treat as "all" (empty array)
-    onSelectionChange(ids.length === 0 || ids.length === allPageIds.length ? [] : ids);
-    setIsOpen(false);
-    setSearchQuery('');
-  }
-
-  function handleOpen() {
-    // [] means "all" → show all checkboxes checked
-    const initial = selectedPageIds.length === 0
-      ? new Set(allPageIds)
-      : new Set(selectedPageIds);
-    setLocalSelected(initial);
+  function handleToggleOpen() {
     setSearchQuery('');
     setIsOpen(!isOpen);
   }
 
-  // Trigger label
+  // Trigger label — from prop
   function getTriggerLabel() {
     if (selectedPageIds.length === 0 || selectedPageIds.length === allPageIds.length) {
       return 'Tất cả trang';
@@ -140,7 +123,7 @@ export default function PageDropdown({ connectedPages, selectedPageIds, onSelect
     <div className="relative" ref={dropdownRef}>
       {/* Trigger button */}
       <button
-        onClick={handleOpen}
+        onClick={handleToggleOpen}
         className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-white hover:bg-slate-50 border-b border-slate-200 transition"
       >
         <div className="flex items-center flex-shrink-0">
@@ -191,7 +174,7 @@ export default function PageDropdown({ connectedPages, selectedPageIds, onSelect
               const pageId = page.pageId || page.page_id;
               const pageName = page.pageName || page.page_name || 'Page';
               const pic = page.pagePicture || page.config?.pagePicture;
-              const isChecked = localSelected.has(pageId);
+              const isChecked = effectiveSelected.has(pageId);
 
               return (
                 <label key={pageId} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer">
@@ -231,9 +214,9 @@ export default function PageDropdown({ connectedPages, selectedPageIds, onSelect
 
           {/* Actions */}
           <div className="border-t border-slate-200 p-3 space-y-2">
-            {/* Apply button */}
+            {/* Close button with count */}
             <button
-              onClick={applyFilter}
+              onClick={() => setIsOpen(false)}
               className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-500 transition"
             >
               Xem hội thoại ({filteredCount}/{totalCount})

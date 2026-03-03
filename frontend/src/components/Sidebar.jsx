@@ -61,8 +61,16 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose, co
     filtered = filtered.filter((c) => c.channel === channelFilter);
   }
   // Lọc theo Pages (multi-select) — conversations without page_id show for all pages
-  if (!isAllPages) {
-    filtered = filtered.filter((c) => !c.page_id || selectedPageIds.includes(c.page_id));
+  console.log('[DEBUG] isAllPages:', isAllPages);
+  console.log('[DEBUG] selectedPageIds:', selectedPageIds);
+  console.log('[DEBUG] allPageIds:', allPageIds);
+  console.log('[DEBUG] conversations page_ids:', conversations.slice(0,3).map(c => ({ id: c.id?.substring(0,8), page_id: c.page_id, type: typeof c.page_id })));
+  console.log('[DEBUG] connectedPages:', connectedPages.map(p => ({ page_id: p.page_id, pageId: p.pageId })));
+  if (!isAllPages && selectedPageIds.length > 0) {
+    filtered = filtered.filter((c) => {
+      if (!c.page_id) return true; // conversations without page_id show for all pages
+      return selectedPageIds.includes(c.page_id);
+    });
   }
   // Lọc theo search
   if (search.trim()) {
