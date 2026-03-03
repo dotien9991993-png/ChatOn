@@ -21,22 +21,10 @@ async function executeCampaign(campaignId, io) {
 
   const tenantId = campaign.tenant_id;
 
-  // Get channel token
-  const { data: ch } = await supabaseAdmin
-    .from('channels')
-    .select('page_access_token')
-    .eq('tenant_id', tenantId)
-    .eq('type', 'facebook')
-    .eq('connected', true)
-    .limit(1)
-    .single();
-
-  const token = ch?.page_access_token;
-
-  // Build recipient list
+  // Build recipient list (include page_id for multi-page token lookup)
   let query = supabaseAdmin
     .from('conversations')
-    .select('id, customer_id, last_message_at, channel, customers!inner(id, name, external_id, tags)')
+    .select('id, customer_id, last_message_at, channel, page_id, customers!inner(id, name, external_id, tags)')
     .eq('tenant_id', tenantId);
 
   if (campaign.target_type === 'channel') {
@@ -99,7 +87,8 @@ async function executeCampaign(campaignId, io) {
         .select('id')
         .single();
 
-      // Send message via Facebook
+      // Send message via Facebook (use correct page token for multi-page)
+      const token = await fbService.getChannelToken(tenantId, conv.page_id);
       if (token && token.length > 30) {
         const result = await fbService.sendMessageWithToken(recipientId, campaign.message_text, token);
 

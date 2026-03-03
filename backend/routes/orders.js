@@ -91,15 +91,17 @@ router.post('/', async (req, res) => {
     // Get conversation info if provided
     let customerId = null;
     let channelType = null;
+    let convPageId = null;
     if (conversation_id) {
       const { data: conv } = await supabaseAdmin
         .from('conversations')
-        .select('customer_id, channel')
+        .select('customer_id, channel, page_id')
         .eq('id', conversation_id)
         .eq('tenant_id', req.tenantId)
         .single();
       customerId = conv?.customer_id;
       channelType = conv?.channel;
+      convPageId = conv?.page_id;
 
       // Update customer info
       if (customerId) {
@@ -166,14 +168,7 @@ router.post('/', async (req, res) => {
 
       // Send invoice to customer via Facebook
       try {
-        const { data: channel } = await supabaseAdmin
-          .from('channels')
-          .select('page_access_token')
-          .eq('tenant_id', req.tenantId)
-          .eq('type', channelType || 'facebook')
-          .eq('connected', true)
-          .limit(1)
-          .single();
+        const token = await fbService.getChannelToken(req.tenantId, convPageId);
 
         const { data: customer } = await supabaseAdmin
           .from('customers')
@@ -181,14 +176,14 @@ router.post('/', async (req, res) => {
           .eq('id', customerId)
           .single();
 
-        if (channel?.page_access_token && customer?.external_id) {
+        if (token && customer?.external_id) {
           await fbService.sendInvoice(customer.external_id, {
             order_code: orderCode,
             customer_name,
             customer_address,
             items: orderItems,
             total,
-          }, channel.page_access_token);
+          }, token);
         }
       } catch (invoiceErr) {
         console.error('[Orders] Invoice send error (non-fatal):', invoiceErr.message);

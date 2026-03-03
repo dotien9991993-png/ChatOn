@@ -61,10 +61,10 @@ router.post('/start', async (req, res) => {
       return res.status(400).json({ error: 'fb_video_id là bắt buộc' });
     }
 
-    // Get channel
+    // Get channel (use first connected FB channel for livestream)
     const { data: ch } = await supabaseAdmin
       .from('channels')
-      .select('id, page_access_token')
+      .select('id, page_access_token, page_id')
       .eq('tenant_id', req.tenantId)
       .eq('type', 'facebook')
       .eq('connected', true)
@@ -129,17 +129,10 @@ router.post('/:id/stop', async (req, res) => {
         .eq('order_confirmed', false);
 
       if (lsComments && lsComments.length > 0) {
-        // Get channel for sending messages
-        const { data: channel } = await supabaseAdmin
-          .from('channels')
-          .select('page_access_token')
-          .eq('tenant_id', req.tenantId)
-          .eq('type', 'facebook')
-          .eq('connected', true)
-          .limit(1)
-          .single();
+        // Get channel token for sending messages
+        const token = await fbService.getChannelToken(req.tenantId);
 
-        if (channel?.page_access_token) {
+        if (token) {
           const uniqueUsers = [...new Map(lsComments.map(c => [c.user_id, c])).values()];
           let remindersSent = 0;
 
@@ -147,7 +140,7 @@ router.post('/:id/stop', async (req, res) => {
             if (!user.user_id) continue;
             try {
               const reminderText = `Hi ${user.user_name || 'bạn'}! Bạn đã đặt hàng trong livestream nhưng chưa xác nhận. Vui lòng nhắn SĐT + địa chỉ để shop hoàn tất đơn hàng nhé!`;
-              await fbService.sendMessageWithToken(user.user_id, reminderText, channel.page_access_token);
+              await fbService.sendMessageWithToken(user.user_id, reminderText, token);
               remindersSent++;
             } catch (sendErr) {
               // Non-fatal: user may not have messaged the page

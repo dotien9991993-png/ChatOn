@@ -56,7 +56,7 @@ router.post('/send', async (req, res) => {
     const pageAccessToken = channel?.page_access_token;
     const recipientId = conv.customers?.external_id;
 
-    console.log(`[Messages] Channel: ${conv.channel} | token length: ${(pageAccessToken || '').length} | recipientId: ${recipientId}`);
+    console.log(`[Messages] Channel: ${conv.channel} | page_id: ${conv.page_id} | token length: ${(pageAccessToken || '').length} | recipientId: ${recipientId} | matched_page: ${channel?.page_id}`);
 
     if (!recipientId) {
       return res.status(400).json({ error: 'Không tìm thấy external_id khách hàng' });

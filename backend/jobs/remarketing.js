@@ -28,7 +28,7 @@ function startRemarketingJob(io) {
           // Find conversations with purchase intent, updated within window, no order
           const { data: conversations } = await supabaseAdmin
             .from('conversations')
-            .select('id, customer_id, customers(external_id, name), metadata')
+            .select('id, customer_id, page_id, customers(external_id, name), metadata')
             .eq('tenant_id', tenant.id)
             .eq('status', 'active')
             .lte('last_message_at', cutoffTime)
@@ -48,18 +48,11 @@ function startRemarketingJob(io) {
 
             // Send remarketing message via Facebook
             if (conv.customers?.external_id) {
-              const { data: channel } = await supabaseAdmin
-                .from('channels')
-                .select('page_access_token')
-                .eq('tenant_id', tenant.id)
-                .eq('type', 'facebook')
-                .eq('connected', true)
-                .limit(1)
-                .single();
+              const token = await fbService.getChannelToken(tenant.id, conv.page_id);
 
-              if (channel?.page_access_token) {
+              if (token) {
                 const personalText = remarketingText.replace('{customer_name}', conv.customers.name || 'anh/chị');
-                await fbService.sendMessageWithToken(conv.customers.external_id, personalText, channel.page_access_token);
+                await fbService.sendMessageWithToken(conv.customers.external_id, personalText, token);
 
                 // Save message + mark sent
                 await supabaseAdmin.from('messages').insert({

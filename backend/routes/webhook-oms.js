@@ -51,7 +51,7 @@ router.post('/:tenantSlug', async (req, res) => {
     // 2. Find order
     const { data: order, error: oErr } = await supabaseAdmin
       .from('orders')
-      .select('*, conversations(id, channel, customer_id, customers(external_id, name))')
+      .select('*, conversations(id, channel, page_id, customer_id, customers(external_id, name))')
       .eq('tenant_id', tenantId)
       .or(`order_code.eq.${body.source_order_id},oms_order_id.eq.${body.order_id}`)
       .single();
@@ -98,21 +98,12 @@ router.post('/:tenantSlug', async (req, res) => {
       // Send via channel (Facebook, etc.)
       const conv = order.conversations;
       if (conv?.channel === 'facebook' && conv?.customers?.external_id) {
-        // Get page access token
-        const { data: channel } = await supabaseAdmin
-          .from('channels')
-          .select('page_access_token')
-          .eq('tenant_id', tenantId)
-          .eq('type', 'facebook')
-          .eq('connected', true)
-          .limit(1)
-          .single();
-
-        if (channel?.page_access_token) {
+        const token = await fbService.getChannelToken(tenantId, conv.page_id);
+        if (token) {
           await fbService.sendMessageWithToken(
             conv.customers.external_id,
             messageText,
-            channel.page_access_token
+            token
           );
         }
       }

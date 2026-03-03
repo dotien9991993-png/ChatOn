@@ -333,6 +333,33 @@ async function debugToken(token) {
   }
 }
 
+/**
+ * Get the correct channel (page_access_token) for a tenant.
+ * Prefers matching by page_id when available, falls back to first connected FB channel.
+ */
+async function getChannelToken(tenantId, pageId) {
+  const { supabaseAdmin } = require('../config/supabase');
+  if (pageId) {
+    const { data } = await supabaseAdmin
+      .from('channels')
+      .select('page_access_token, page_id')
+      .eq('page_id', pageId)
+      .eq('connected', true)
+      .single();
+    if (data?.page_access_token) return data.page_access_token;
+  }
+  // Fallback: first connected facebook channel for tenant
+  const { data } = await supabaseAdmin
+    .from('channels')
+    .select('page_access_token, page_id')
+    .eq('tenant_id', tenantId)
+    .eq('type', 'facebook')
+    .eq('connected', true)
+    .limit(1)
+    .single();
+  return data?.page_access_token || null;
+}
+
 module.exports = {
   getUserProfile,
   sendMessage,
@@ -346,4 +373,5 @@ module.exports = {
   subscribePageWebhook,
   unsubscribePageWebhook,
   debugToken,
+  getChannelToken,
 };

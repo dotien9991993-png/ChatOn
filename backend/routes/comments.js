@@ -6,19 +6,13 @@ const config = require('../config');
 
 const GRAPH = config.fb.graphApiUrl;
 
+const fbService = require('../services/facebook');
+
 /**
- * Helper: get page access token for tenant
+ * Helper: get page access token for tenant (supports multi-page via pageId)
  */
-async function getPageToken(tenantId) {
-  const { data } = await supabaseAdmin
-    .from('channels')
-    .select('page_access_token')
-    .eq('tenant_id', tenantId)
-    .eq('type', 'facebook')
-    .eq('connected', true)
-    .limit(1)
-    .single();
-  return data?.page_access_token;
+async function getPageToken(tenantId, pageId) {
+  return fbService.getChannelToken(tenantId, pageId);
 }
 
 // GET /api/comments — Danh sách comments (grouped by post)

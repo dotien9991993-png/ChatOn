@@ -53,7 +53,7 @@ function startDripProcessor(io) {
           // Find conversation
           const { data: conv } = await supabaseAdmin
             .from('conversations')
-            .select('id, channel, tenant_id')
+            .select('id, channel, tenant_id, page_id')
             .eq('customer_id', customer.id)
             .single();
 
@@ -61,17 +61,9 @@ function startDripProcessor(io) {
 
           // Send message via channel
           if (conv.channel === 'facebook' && customer.external_id) {
-            const { data: channel } = await supabaseAdmin
-              .from('channels')
-              .select('page_access_token')
-              .eq('tenant_id', conv.tenant_id)
-              .eq('type', 'facebook')
-              .eq('connected', true)
-              .limit(1)
-              .single();
-
-            if (channel?.page_access_token) {
-              await fbService.sendMessageWithToken(customer.external_id, messageText, channel.page_access_token);
+            const token = await fbService.getChannelToken(conv.tenant_id, conv.page_id);
+            if (token) {
+              await fbService.sendMessageWithToken(customer.external_id, messageText, token);
             }
           }
 

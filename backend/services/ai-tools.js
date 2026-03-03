@@ -138,23 +138,16 @@ async function createOrder(tenantId, conversationId, input, io) {
           .eq('id', conv.customer_id)
           .single();
 
-        const { data: channel } = await supabaseAdmin
-          .from('channels')
-          .select('page_access_token')
-          .eq('tenant_id', tenantId)
-          .eq('type', conv?.channel || 'facebook')
-          .eq('connected', true)
-          .limit(1)
-          .single();
+        const token = await fbService.getChannelToken(tenantId, conv?.page_id);
 
-        if (channel?.page_access_token && customer?.external_id) {
+        if (token && customer?.external_id) {
           await fbService.sendInvoice(customer.external_id, {
             order_code: orderCode,
             customer_name: customer_name || '',
             customer_address: customer_address || '',
             items: orderItems,
             total,
-          }, channel.page_access_token);
+          }, token);
         }
       }
     } catch (invoiceErr) {
