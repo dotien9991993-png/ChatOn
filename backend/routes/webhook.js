@@ -137,7 +137,7 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
         // 2. Find or create customer
         const { data: existingCustomer } = await supabaseAdmin
           .from('customers')
-          .select('id')
+          .select('id, name, avatar')
           .eq('tenant_id', tenantId)
           .eq('channel_type', 'facebook')
           .eq('external_id', senderId)
@@ -147,12 +147,21 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
         let customerId;
         if (existingCustomer) {
           customerId = existingCustomer.id;
-          // Update profile if available
-          if (profile.name) {
+          // Update profile if: we got a name AND (customer has no name, or still has default name, or has no avatar)
+          const needsUpdate = profile.name && (
+            !existingCustomer.name ||
+            existingCustomer.name === 'Khách hàng' ||
+            !existingCustomer.avatar
+          );
+          if (needsUpdate) {
             await supabaseAdmin
               .from('customers')
-              .update({ name: profile.name, avatar: profile.avatar })
+              .update({
+                name: profile.name,
+                avatar: profile.avatar || existingCustomer.avatar,
+              })
               .eq('id', customerId);
+            console.log(`[Webhook] Updated customer ${customerId} name: "${profile.name}"`);
           }
         } else {
           const { data: newCustomer, error: custErr } = await supabaseAdmin

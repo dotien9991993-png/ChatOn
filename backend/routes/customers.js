@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../config/supabase');
+const fbService = require('../services/facebook');
 
 /**
  * API quản lý khách hàng CRM (multi-tenant via req.tenantId)
@@ -316,6 +317,55 @@ router.get('/export/csv', async (req, res) => {
     res.send('\uFEFF' + csv); // BOM for Excel UTF-8
   } catch (err) {
     console.error('[Customers] GET /export/csv error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/customers/update-names — Backfill Facebook profile names for customers with default name
+router.post('/update-names', async (req, res) => {
+  try {
+    // Find all Facebook customers with missing/default names for this tenant
+    const { data: customers, error } = await supabaseAdmin
+      .from('customers')
+      .select('id, external_id, tenant_id, name, avatar')
+      .eq('tenant_id', req.tenantId)
+      .eq('channel_type', 'facebook')
+      .or('name.is.null,name.eq.Khách hàng');
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    if (!customers || customers.length === 0) {
+      return res.json({ updated: 0, message: 'Không có khách hàng cần cập nhật' });
+    }
+
+    // Get Facebook channel token for this tenant
+    const token = await fbService.getChannelToken(req.tenantId);
+    if (!token) {
+      return res.status(400).json({ error: 'Chưa kết nối Facebook Page' });
+    }
+
+    const results = [];
+    for (const c of customers) {
+      try {
+        const profile = await fbService.getUserProfile(c.external_id, token);
+        if (profile.name) {
+          await supabaseAdmin
+            .from('customers')
+            .update({ name: profile.name, avatar: profile.avatar || c.avatar })
+            .eq('id', c.id);
+          results.push({ id: c.id, name: profile.name });
+        }
+      } catch (err) {
+        console.error(`[Customers] Failed to update name for ${c.id}:`, err.message);
+      }
+    }
+
+    console.log(`[Customers] Backfilled ${results.length}/${customers.length} customer names`);
+    res.json({ updated: results.length, total: customers.length, results });
+  } catch (err) {
+    console.error('[Customers] POST /update-names error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
