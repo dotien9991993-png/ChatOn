@@ -183,13 +183,14 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
         let conversationId;
         if (existingConv) {
           conversationId = existingConv.id;
-          // Update last message + atomically increment unread
+          // Update last message + atomically increment unread + set page_id
           await supabaseAdmin
             .from('conversations')
             .update({
               last_message: text,
               last_message_at: new Date().toISOString(),
               status: 'active',
+              page_id: pageId,
             })
             .eq('id', conversationId);
           await supabaseAdmin.rpc('increment_unread', { conv_id: conversationId });
@@ -200,6 +201,7 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
               tenant_id: tenantId,
               customer_id: customerId,
               channel: 'facebook',
+              page_id: pageId,
               status: 'active',
               last_message: text,
               last_message_at: new Date().toISOString(),
@@ -285,6 +287,7 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
             name: customer.name,
             avatar: customer.avatar,
             channel: conv.channel,
+            page_id: conv.page_id || pageId,
             phone: customer.phone || '',
             notes: customer.notes || '',
             status: conv.status,

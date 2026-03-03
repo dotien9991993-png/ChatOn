@@ -442,4 +442,8 @@ export function getFacebookTokenStatus() {
   return api.get('/facebook/token-status').then((res) => res.data);
 }
 
+export function getConnectedPages() {
+  return api.get('/facebook/token-status').then((res) => res.data?.channels || []);
+}
+
 export default api;

@@ -34,6 +34,7 @@ router.get('/', async (req, res) => {
           name: customer?.name || 'Khách hàng',
           avatar: customer?.avatar || null,
           channel: conv.channel,
+          page_id: conv.page_id || null,
           phone: customer?.phone || '',
           notes: customer?.notes || '',
           address: customer?.address || '',

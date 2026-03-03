@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ConversationItem from './ConversationItem';
+import PageFilter from './PageFilter';
 import { useAuth } from '../contexts/AuthContext';
 import { Search, X } from 'lucide-react';
 
@@ -23,12 +24,13 @@ const INBOX_FILTERS = [
 /**
  * Sidebar — status tabs + ô tìm kiếm + inbox filter + channel filter + danh sách conversations
  */
-export default function Sidebar({ conversations, activeId, onSelect, onClose }) {
+export default function Sidebar({ conversations, activeId, onSelect, onClose, connectedPages = [] }) {
   const { profile } = useAuth();
   const [search, setSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState('all');
   const [inboxFilter, setInboxFilter] = useState('all');
   const [statusTab, setStatusTab] = useState('active'); // 'active' | 'resolved' | 'all'
+  const [selectedPageId, setSelectedPageId] = useState('all');
 
   // Count by status
   const activeCount = conversations.filter((c) => c.status === 'active').length;
@@ -54,6 +56,10 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose }) 
   // Lọc theo channel
   if (channelFilter !== 'all') {
     filtered = filtered.filter((c) => c.channel === channelFilter);
+  }
+  // Lọc theo Page
+  if (selectedPageId !== 'all') {
+    filtered = filtered.filter((c) => c.page_id === selectedPageId);
   }
   // Lọc theo search
   if (search.trim()) {
@@ -97,6 +103,14 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose }) 
           Tất cả <span className="ml-1 px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px]">{conversations.length}</span>
         </button>
       </div>
+
+      {/* Page filter */}
+      <PageFilter
+        pages={connectedPages}
+        selectedPageId={selectedPageId}
+        onSelect={setSelectedPageId}
+        conversations={conversations}
+      />
 
       {/* Search + filters */}
       <div className="px-4 py-3 border-b border-slate-200">
@@ -160,7 +174,7 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose }) 
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 && (
           <div className="px-4 py-8 text-center text-slate-400 text-sm">
-            {search || channelFilter !== 'all' ? 'Không tìm thấy kết quả' : 'Chưa có tin nhắn nào'}
+            {search || channelFilter !== 'all' || selectedPageId !== 'all' ? 'Không tìm thấy kết quả' : 'Chưa có tin nhắn nào'}
           </div>
         )}
         {filtered.map((conv) => (

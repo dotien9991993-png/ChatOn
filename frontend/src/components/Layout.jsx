@@ -12,6 +12,7 @@ export default function Layout({
   activeConversation,
   messages,
   connected,
+  connectedPages,
   onSelectConversation,
   onSendMessage,
   onUpdateStatus,
@@ -33,6 +34,7 @@ export default function Layout({
           activeId={activeConversation?.id}
           onSelect={onSelectConversation}
           onClose={() => setSidebarOpen(false)}
+          connectedPages={connectedPages}
         />
       </div>
       {sidebarOpen && (

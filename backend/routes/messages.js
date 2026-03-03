@@ -30,17 +30,27 @@ router.post('/send', async (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy conversation' });
     }
 
-    // 2. Get channel's page_access_token for this tenant
-    const { data: channel, error: chErr } = await supabaseAdmin
-      .from('channels')
-      .select('page_access_token, page_id')
-      .eq('tenant_id', req.tenantId)
-      .eq('type', conv.channel)
-      .eq('connected', true)
-      .single();
-
-    if (chErr) {
-      console.error('[Messages] Channel query error:', chErr.message);
+    // 2. Get channel's page_access_token — prefer matching by page_id
+    let channel = null;
+    if (conv.page_id) {
+      const { data: ch } = await supabaseAdmin
+        .from('channels')
+        .select('page_access_token, page_id')
+        .eq('page_id', conv.page_id)
+        .eq('connected', true)
+        .single();
+      channel = ch;
+    }
+    if (!channel) {
+      const { data: ch } = await supabaseAdmin
+        .from('channels')
+        .select('page_access_token, page_id')
+        .eq('tenant_id', req.tenantId)
+        .eq('type', conv.channel)
+        .eq('connected', true)
+        .limit(1)
+        .single();
+      channel = ch;
     }
 
     const pageAccessToken = channel?.page_access_token;

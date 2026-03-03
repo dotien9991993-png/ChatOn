@@ -39,6 +39,7 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [connectedPages, setConnectedPages] = useState([]);
 
   const activeConvIdRef = useRef(activeConvId);
   activeConvIdRef.current = activeConvId;
@@ -47,6 +48,9 @@ export default function ChatPage() {
     api.getConversations()
       .then(setConversations)
       .catch((err) => console.error('Lỗi load conversations:', err));
+    api.getConnectedPages()
+      .then(setConnectedPages)
+      .catch(() => {});
   }, []);
 
   const handleNewMessage = useCallback((data) => {
@@ -124,6 +128,7 @@ export default function ChatPage() {
       activeConversation={activeConversation}
       messages={messages}
       connected={connected}
+      connectedPages={connectedPages}
       onSelectConversation={selectConversation}
       onSendMessage={sendMessage}
       onUpdateStatus={updateStatus}
