@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ConnectionCard from './ConnectionCard';
 import FacebookConnectButton from './FacebookConnectButton';
+import ZaloConnectButton from './ZaloConnectButton';
 import PageSelector from './PageSelector';
 import * as api from '../../services/api';
 import { Copy, Check } from 'lucide-react';
@@ -18,8 +19,12 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
   const [showPageSelector, setShowPageSelector] = useState(false);
   const [disconnecting, setDisconnecting] = useState(null); // pageId being disconnected
 
+  // Zalo OA state
+  const [zaloChannels, setZaloChannels] = useState([]);
+  const [zaloDisconnecting, setZaloDisconnecting] = useState(null);
+  const [zaloCopied, setZaloCopied] = useState(false);
+
   // Other channels state
-  const [zaloValues, setZaloValues] = useState({});
   const [tiktokValues, setTiktokValues] = useState({});
   const [igValues, setIgValues] = useState({});
 
@@ -29,14 +34,14 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
 
   // Sync settings → local state
   useEffect(() => {
-    if (channels.zalo) setZaloValues(channels.zalo);
     if (channels.tiktok) setTiktokValues(channels.tiktok);
     if (channels.instagram) setIgValues(channels.instagram);
   }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load all Facebook channels
+  // Load all channels
   useEffect(() => {
     loadFbChannels();
+    loadZaloChannels();
   }, []);
 
   async function loadFbChannels() {
@@ -45,6 +50,35 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
       setFbChannels(data.channels || []);
     } catch {
       setFbChannels([]);
+    }
+  }
+
+  async function loadZaloChannels() {
+    try {
+      const data = await api.getZaloStatus();
+      setZaloChannels(data.channels || []);
+    } catch {
+      setZaloChannels([]);
+    }
+  }
+
+  // Zalo OA handlers
+  async function handleZaloOAuthSuccess() {
+    await loadZaloChannels();
+    showToast('Ket noi Zalo OA thanh cong!', 'success');
+  }
+
+  async function handleZaloDisconnect(oaId, oaName) {
+    if (!window.confirm(`Ngat ket noi "${oaName}"?`)) return;
+    setZaloDisconnecting(oaId);
+    try {
+      await api.disconnectZaloOA(oaId);
+      showToast(`Da ngat ket noi ${oaName}`, 'info');
+      await loadZaloChannels();
+    } catch (err) {
+      showToast('Loi: ' + (err.response?.data?.error || err.message), 'error');
+    } finally {
+      setZaloDisconnecting(null);
     }
   }
 
@@ -246,29 +280,156 @@ export default function ChannelSettings({ settings, onSettingsChange, showToast 
           </div>
         </div>
 
-        {/* ======== ZALO ======== */}
-        <ConnectionCard
-          icon={<span className="text-lg font-bold text-white">Z</span>}
-          iconBg="bg-blue-500"
-          name="Zalo Official Account"
-          connected={channels.zalo?.connected}
-          fields={[
-            { key: 'oaAccessToken', label: 'OA Access Token', type: 'password', placeholder: 'Paste token...' },
-            { key: 'oaSecretKey', label: 'OA Secret Key', type: 'password', placeholder: 'Paste secret key...' },
-            { key: 'webhookUrl', label: 'Webhook URL', type: 'text', readOnly: true, copyable: true },
-          ]}
-          values={{ ...zaloValues, webhookUrl: `${webhookBase}/webhook/zalo` }}
-          onChange={(key, val) => setZaloValues((p) => ({ ...p, [key]: val }))}
-          onSave={() => handleSave('zalo', zaloValues)}
-          saving={saving.zalo}
-          guideUrl="https://oa.zalo.me/"
-          guideSteps={[
-            'Vào oa.zalo.me → đăng nhập Zalo OA',
-            'Quản lý → API → Lấy Access Token',
-            'Cấu hình Webhook URL',
-            'Paste token vào ô trên → Lưu',
-          ]}
-        />
+        {/* ======== ZALO OA — OAuth Flow ======== */}
+        <div className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#0068ff]">
+                <span className="text-lg font-bold text-white">Z</span>
+              </div>
+              <span className="text-base font-semibold text-slate-800">Zalo Official Account</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${zaloChannels.length > 0 ? 'bg-green-500' : 'bg-slate-500'}`} />
+              <span className={`text-xs font-medium ${zaloChannels.length > 0 ? 'text-green-600' : 'text-slate-500'}`}>
+                {zaloChannels.length > 0 ? `${zaloChannels.length} OA` : 'Chua ket noi'}
+              </span>
+            </div>
+          </div>
+
+          <div className="px-5 py-4 space-y-4">
+            {zaloChannels.length > 0 ? (
+              <>
+                {/* Connected OAs */}
+                <div className="space-y-3">
+                  {zaloChannels.map((ch) => (
+                    <div key={ch.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
+                      {ch.oaAvatar ? (
+                        <img src={ch.oaAvatar} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-[#0068ff] flex items-center justify-center text-white font-bold text-lg">
+                          Z
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{ch.oaName || 'Zalo OA'}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">OA ID: {ch.oaId || '—'}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className={`text-[11px] font-medium ${
+                            ch.tokenError ? 'text-red-600' :
+                            ch.critical ? 'text-red-600' :
+                            ch.warning ? 'text-amber-600' :
+                            'text-green-600'
+                          }`}>
+                            {ch.tokenError ? 'Loi token' :
+                             ch.hoursLeft != null ? `Token: con ${ch.hoursLeft}h` : 'Token OK'}
+                          </span>
+                          {ch.connectedAt && (
+                            <span className="text-[11px] text-slate-400">
+                              Ket noi: {new Date(ch.connectedAt).toLocaleDateString('vi-VN')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleZaloDisconnect(ch.oaId, ch.oaName)}
+                        disabled={zaloDisconnecting === ch.oaId}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 transition flex-shrink-0"
+                      >
+                        {zaloDisconnecting === ch.oaId ? 'Dang ngat...' : 'Ngat'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Token warnings */}
+                {zaloChannels.some(ch => ch.tokenError || ch.critical) && (
+                  <div className="text-xs px-3 py-2.5 rounded-lg flex items-center gap-2 bg-red-50 text-red-600 border border-red-200">
+                    <span>!</span>
+                    <span>Co OA bi loi token. Ket noi lai de cap nhat.</span>
+                  </div>
+                )}
+
+                {/* Webhook URL */}
+                <div>
+                  <label className="text-xs text-slate-600 font-medium block mb-1.5">Webhook URL (cau hinh trong Zalo OA Dashboard)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={`${webhookBase}/webhook/zalo`}
+                      readOnly
+                      className="flex-1 bg-slate-50 border border-slate-200 text-xs text-slate-700 rounded-lg px-3 py-2.5 outline-none font-mono"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${webhookBase}/webhook/zalo`);
+                        setZaloCopied(true);
+                        setTimeout(() => setZaloCopied(false), 2000);
+                      }}
+                      className="px-3 bg-slate-100 rounded-lg text-slate-500 hover:text-blue-600 transition flex items-center gap-1 text-xs"
+                    >
+                      {zaloCopied ? <><Check className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Connect more */}
+                <div className="flex items-center justify-center pt-2">
+                  <ZaloConnectButton
+                    onSuccess={handleZaloOAuthSuccess}
+                    onError={(err) => showToast(err, 'error')}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Not connected: show OAuth button */}
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-50 flex items-center justify-center">
+                    <span className="text-3xl font-bold text-[#0068ff]">Z</span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-slate-800 mb-1">Ket noi Zalo Official Account</h3>
+                  <p className="text-xs text-slate-500 mb-5 max-w-sm mx-auto">
+                    Dang nhap Zalo va cap quyen cho OA de tu dong nhan tin nhan tu khach hang
+                  </p>
+                  <ZaloConnectButton
+                    onSuccess={handleZaloOAuthSuccess}
+                    onError={(err) => showToast(err, 'error')}
+                  />
+                </div>
+
+                {/* Guide */}
+                <div className="border-t border-slate-200 pt-3 space-y-2">
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Sau khi ket noi, cau hinh Webhook URL trong{' '}
+                    <a href="https://developers.zalo.me" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                      Zalo Developer Console
+                    </a>:
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={`${webhookBase}/webhook/zalo`}
+                      readOnly
+                      className="flex-1 bg-slate-50 border border-slate-200 text-[11px] text-slate-600 rounded-lg px-3 py-2 outline-none font-mono"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${webhookBase}/webhook/zalo`);
+                        setZaloCopied(true);
+                        setTimeout(() => setZaloCopied(false), 2000);
+                      }}
+                      className="px-2.5 bg-slate-100 rounded-lg text-slate-500 hover:text-blue-600 transition text-[11px]"
+                    >
+                      {zaloCopied ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
         {/* ======== TIKTOK ======== */}
         <ConnectionCard

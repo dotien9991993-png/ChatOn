@@ -24,6 +24,9 @@ const { startScheduler } = require('./jobs/campaign-scheduler');
 const { startInventorySync } = require('./jobs/inventory-sync');
 const { startDripProcessor } = require('./jobs/drip-processor');
 const { startRemarketingJob } = require('./jobs/remarketing');
+const authZaloRoutes = require('./routes/auth-zalo');
+const webhookZaloRoutes = require('./routes/webhook-zalo');
+const { startZaloTokenRefresh } = require('./jobs/zalo-token-refresh');
 const livechatRoutes = require('./routes/livechat');
 const chatbotRulesRoutes = require('./routes/chatbot-rules');
 const dripCampaignRoutes = require('./routes/drip-campaigns');
@@ -136,6 +139,8 @@ app.use('/api', apiLimiter);
 app.use('/webhook/facebook', webhookRoutes);
 app.use('/webhook/oms', webhookOmsRoutes);
 app.use('/auth/facebook', authFacebookRoutes);
+app.use('/webhook/zalo', webhookZaloRoutes);
+app.use('/auth/zalo', authZaloRoutes);
 app.use('/api/livechat', livechatRoutes);
 
 // Serve widget static files
@@ -146,6 +151,7 @@ app.use('/api/conversations', authMiddleware, conversationRoutes);
 app.use('/api/messages', authMiddleware, messageRoutes);
 app.use('/api/settings', authMiddleware, settingsRoutes);
 app.use('/api/facebook', authMiddleware, authFacebookRoutes);
+app.use('/api/zalo', authMiddleware, authZaloRoutes);
 app.use('/api/products', authMiddleware, productRoutes);
 app.use('/api/orders', authMiddleware, orderRoutes);
 app.use('/api/customers', authMiddleware, customerRoutes);
@@ -190,6 +196,9 @@ server.listen(config.port, () => {
 
   // Start remarketing job
   startRemarketingJob(io);
+
+  // Start Zalo token refresh job
+  startZaloTokenRefresh();
 
   console.log(`
   ╔══════════════════════════════════════════════╗

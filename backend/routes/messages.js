@@ -62,18 +62,32 @@ router.post('/send', async (req, res) => {
       return res.status(400).json({ error: 'Không tìm thấy external_id khách hàng' });
     }
 
-    // 3. Send via Facebook API (skip if no valid token — still save message locally)
+    // 3. Send via channel API (skip if no valid token — still save message locally)
     let fbSent = false;
     if (pageAccessToken && pageAccessToken !== 'paste_your_token_here' && pageAccessToken.length > 30) {
-      const fbResult = await fbService.sendMessageWithToken(recipientId, text, pageAccessToken);
-      if (!fbResult.success) {
-        console.error('[Messages] Facebook send failed:', fbResult.error);
-        // Don't return error — still save message locally for testing
+      if (conv.channel === 'zalo') {
+        const zaloService = require('../services/zalo');
+        const zaloResult = await zaloService.sendMessage(recipientId, text, pageAccessToken);
+        if (!zaloResult.success) {
+          console.error('[Messages] Zalo send failed:', zaloResult.error);
+        } else {
+          fbSent = true;
+        }
+      } else if (conv.channel === 'livechat') {
+        fbSent = true; // livechat doesn't need external API
       } else {
-        fbSent = true;
+        // Facebook (default)
+        const fbResult = await fbService.sendMessageWithToken(recipientId, text, pageAccessToken);
+        if (!fbResult.success) {
+          console.error('[Messages] Facebook send failed:', fbResult.error);
+        } else {
+          fbSent = true;
+        }
       }
+    } else if (conv.channel === 'livechat') {
+      fbSent = true;
     } else {
-      console.log('[Messages] No valid Facebook token — saving message locally only (demo mode)');
+      console.log('[Messages] No valid token — saving message locally only (demo mode)');
     }
 
     // 4. Insert message into DB

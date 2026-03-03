@@ -446,4 +446,18 @@ export function getConnectedPages() {
   return api.get('/facebook/token-status').then((res) => res.data?.channels || []);
 }
 
+// === Zalo OAuth ===
+
+export function getZaloOAuthUrl() {
+  return api.get('/zalo/connect').then((res) => res.data);
+}
+
+export function getZaloStatus() {
+  return api.get('/zalo/status').then((res) => res.data);
+}
+
+export function disconnectZaloOA(oaId) {
+  return api.post('/zalo/disconnect', { oaId }).then((res) => res.data);
+}
+
 export default api;

@@ -14,4 +14,9 @@ module.exports = {
     pageAccessToken: process.env.FB_PAGE_ACCESS_TOKEN || '',
     graphApiUrl: 'https://graph.facebook.com/v18.0',
   },
+  zalo: {
+    appId: process.env.ZALO_APP_ID || '',
+    appSecret: process.env.ZALO_APP_SECRET || '',
+    oaSecret: process.env.ZALO_OA_SECRET || '',
+  },
 };
