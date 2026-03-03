@@ -19,6 +19,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
+import DataDeletion from './pages/DataDeletion';
 import {
   LayoutDashboard,
   MessageSquare,
@@ -131,6 +132,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/deletion" element={<DataDeletion />} />
 
           {/* Protected routes */}
           <Route
