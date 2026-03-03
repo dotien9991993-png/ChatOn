@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Full viewport height chain */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
 /* Font */
 body {
   font-family: 'Be Vietnam Pro', sans-serif;

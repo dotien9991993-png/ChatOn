@@ -57,7 +57,7 @@ export default function ChatArea({
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white min-w-0 relative">
+    <div className="flex-1 flex flex-col bg-white min-w-0 min-h-0 relative">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-200 bg-white flex-shrink-0">
         {/* Nút mở sidebar (mobile) */}
@@ -150,7 +150,7 @@ export default function ChatArea({
       </div>
 
       {/* Vùng tin nhắn */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-3">
         {messages.map((msg, idx) => (
           <React.Fragment key={msg.id}>
             {/* Date divider */}
