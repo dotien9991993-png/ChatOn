@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ConversationItem from './ConversationItem';
-import PageFilter from './PageFilter';
+import PageDropdown from './PageDropdown';
 import { useAuth } from '../contexts/AuthContext';
 import { Search, X } from 'lucide-react';
 
@@ -22,15 +22,18 @@ const INBOX_FILTERS = [
 ];
 
 /**
- * Sidebar — status tabs + ô tìm kiếm + inbox filter + channel filter + danh sách conversations
+ * Sidebar — PageDropdown + status tabs + search + inbox/channel filter + conversations list
  */
 export default function Sidebar({ conversations, activeId, onSelect, onClose, connectedPages = [] }) {
   const { profile } = useAuth();
   const [search, setSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState('all');
   const [inboxFilter, setInboxFilter] = useState('all');
-  const [statusTab, setStatusTab] = useState('active'); // 'active' | 'resolved' | 'all'
-  const [selectedPageId, setSelectedPageId] = useState('all');
+  const [statusTab, setStatusTab] = useState('active');
+  const [selectedPageIds, setSelectedPageIds] = useState([]); // empty = all
+
+  const allPageIds = connectedPages.map(p => p.pageId || p.page_id);
+  const isAllPages = selectedPageIds.length === 0 || selectedPageIds.length === allPageIds.length;
 
   // Count by status
   const activeCount = conversations.filter((c) => c.status === 'active').length;
@@ -57,9 +60,9 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose, co
   if (channelFilter !== 'all') {
     filtered = filtered.filter((c) => c.channel === channelFilter);
   }
-  // Lọc theo Page
-  if (selectedPageId !== 'all') {
-    filtered = filtered.filter((c) => c.page_id === selectedPageId);
+  // Lọc theo Pages (multi-select)
+  if (!isAllPages) {
+    filtered = filtered.filter((c) => selectedPageIds.includes(c.page_id));
   }
   // Lọc theo search
   if (search.trim()) {
@@ -70,6 +73,16 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose, co
 
   return (
     <div className="flex flex-col h-full bg-white border-r border-slate-200">
+      {/* Page dropdown filter */}
+      {connectedPages.length > 1 && (
+        <PageDropdown
+          connectedPages={connectedPages}
+          selectedPageIds={selectedPageIds}
+          onSelectionChange={setSelectedPageIds}
+          conversations={conversations}
+        />
+      )}
+
       {/* Status tabs */}
       <div className="flex border-b border-slate-200">
         <button
@@ -103,14 +116,6 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose, co
           Tất cả <span className="ml-1 px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px]">{conversations.length}</span>
         </button>
       </div>
-
-      {/* Page filter */}
-      <PageFilter
-        pages={connectedPages}
-        selectedPageId={selectedPageId}
-        onSelect={setSelectedPageId}
-        conversations={conversations}
-      />
 
       {/* Search + filters */}
       <div className="px-4 py-3 border-b border-slate-200">
@@ -174,7 +179,7 @@ export default function Sidebar({ conversations, activeId, onSelect, onClose, co
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 && (
           <div className="px-4 py-8 text-center text-slate-400 text-sm">
-            {search || channelFilter !== 'all' || selectedPageId !== 'all' ? 'Không tìm thấy kết quả' : 'Chưa có tin nhắn nào'}
+            {search || channelFilter !== 'all' || !isAllPages ? 'Không tìm thấy kết quả' : 'Chưa có tin nhắn nào'}
           </div>
         )}
         {filtered.map((conv) => (
