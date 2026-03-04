@@ -3,7 +3,7 @@ import { X, Search, Upload, Folder, ChevronLeft, ChevronRight } from 'lucide-rea
 import * as api from '../services/api';
 
 /**
- * Modal overlay to pick an image from the media library.
+ * Modal overlay để chọn ảnh từ thư viện.
  * Props:
  *   open: boolean
  *   onClose: () => void
@@ -70,7 +70,7 @@ export default function MediaPicker({ open, onClose, onSelect }) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-800">Chon anh tu thu vien</h3>
+          <h3 className="text-sm font-semibold text-slate-800">Chọn ảnh từ thư viện</h3>
           <div className="flex items-center gap-2">
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -78,7 +78,7 @@ export default function MediaPicker({ open, onClose, onSelect }) {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-500 transition disabled:opacity-50"
             >
               <Upload className="w-3.5 h-3.5" />
-              {uploading ? 'Uploading...' : 'Upload'}
+              {uploading ? 'Đang tải...' : 'Tải lên'}
             </button>
             <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
               <X className="w-4 h-4" />
@@ -88,7 +88,7 @@ export default function MediaPicker({ open, onClose, onSelect }) {
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*"
+            accept="image/jpeg,image/png,image/gif,image/webp"
             className="hidden"
             onChange={(e) => handleQuickUpload(Array.from(e.target.files))}
           />
@@ -101,7 +101,7 @@ export default function MediaPicker({ open, onClose, onSelect }) {
             <input
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Tim kiem..."
+              placeholder="Tìm kiếm..."
               className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-400"
             />
           </div>
@@ -112,7 +112,7 @@ export default function MediaPicker({ open, onClose, onSelect }) {
                 !filterCat ? 'bg-blue-100 text-blue-600 font-medium' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
               }`}
             >
-              Tat ca
+              Tất cả
             </button>
             {categories.map(cat => (
               <button
@@ -132,12 +132,13 @@ export default function MediaPicker({ open, onClose, onSelect }) {
         {/* Image grid */}
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+            <div className="flex flex-col items-center justify-center h-32 text-slate-400">
+              <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-2" />
+              <p className="text-xs">Đang tải...</p>
             </div>
           ) : media.length === 0 ? (
             <div className="text-center text-slate-400 py-12 text-sm">
-              Chua co anh. Bam Upload de them.
+              Chưa có ảnh nào. Bấm Tải lên để thêm.
             </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">

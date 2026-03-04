@@ -18,17 +18,117 @@ const upload = multer({
 });
 
 // ========================
-// MEDIA UPLOAD
+// CATEGORIES (đặt TRƯỚC /:id để tránh conflict)
+// ========================
+
+// GET /api/media/categories
+router.get('/categories', async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('media_categories')
+      .select('*')
+      .eq('tenant_id', req.tenantId)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('[Media] Categories list error:', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json(data || []);
+  } catch (err) {
+    console.error('[Media] GET /categories error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/media/categories
+router.post('/categories', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      return res.status(400).json({ error: 'Tên danh mục không được để trống' });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('media_categories')
+      .insert({ tenant_id: req.tenantId, name: name.trim() })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('[Media] Create category error:', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('[Media] POST /categories error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/media/categories/:id
+router.put('/categories/:id', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      return res.status(400).json({ error: 'Tên danh mục không được để trống' });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('media_categories')
+      .update({ name: name.trim() })
+      .eq('id', req.params.id)
+      .eq('tenant_id', req.tenantId)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('[Media] Update category error:', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('[Media] PUT /categories/:id error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/media/categories/:id
+router.delete('/categories/:id', async (req, res) => {
+  try {
+    const { error } = await supabaseAdmin
+      .from('media_categories')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('tenant_id', req.tenantId);
+
+    if (error) {
+      console.error('[Media] Delete category error:', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Media] DELETE /categories/:id error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========================
+// UPLOAD
 // ========================
 
 // POST /api/media/upload — Upload single file to Cloudinary
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file provided' });
+      return res.status(400).json({ error: 'Vui lòng chọn ảnh để tải lên' });
     }
 
-    const { categoryId, category, tags, description } = req.body;
+    const { categoryId } = req.body;
     const tenantId = req.tenantId;
 
     // Upload to Cloudinary
@@ -39,9 +139,9 @@ router.post('/upload', upload.single('file'), async (req, res) => {
           resource_type: 'image',
           transformation: [{ quality: 'auto', fetch_format: 'auto' }],
         },
-        (error, result) => {
+        (error, uploadResult) => {
           if (error) reject(error);
-          else resolve(result);
+          else resolve(uploadResult);
         }
       ).end(req.file.buffer);
     });
@@ -71,7 +171,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     if (dbErr) {
       console.error('[Media] DB insert error:', dbErr.message);
-      return res.status(500).json({ error: 'DB error: ' + dbErr.message });
+      return res.status(500).json({ error: 'Lỗi lưu DB: ' + dbErr.message });
     }
 
     res.json(media);
@@ -83,11 +183,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
 // POST /api/media/upload-multiple — Upload multiple files to Cloudinary
 router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
-  const { categoryId, category } = req.body;
+  const { categoryId } = req.body;
   const tenantId = req.tenantId;
   const results = [];
 
-  for (const file of req.files) {
+  for (const file of (req.files || [])) {
     try {
       const result = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
@@ -96,9 +196,9 @@ router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
             resource_type: 'image',
             transformation: [{ quality: 'auto' }],
           },
-          (error, result) => {
+          (error, uploadResult) => {
             if (error) reject(error);
-            else resolve(result);
+            else resolve(uploadResult);
           }
         ).end(file.buffer);
       });
@@ -138,7 +238,7 @@ router.post('/upload-multiple', upload.array('files', 10), async (req, res) => {
 });
 
 // ========================
-// MEDIA LIST / DELETE
+// LIST / DELETE
 // ========================
 
 // GET /api/media — List media with pagination, search, category filter
@@ -169,11 +269,11 @@ router.get('/', async (req, res) => {
     }
 
     res.json({
-      media: data,
-      total: count,
+      media: data || [],
+      total: count || 0,
       page: Number(page),
       limit: Number(limit),
-      totalPages: Math.ceil(count / Number(limit)),
+      totalPages: Math.ceil((count || 0) / Number(limit)) || 1,
     });
   } catch (err) {
     console.error('[Media] GET / error:', err);
@@ -193,7 +293,7 @@ router.delete('/:id', async (req, res) => {
       .single();
 
     if (findErr || !media) {
-      return res.status(404).json({ error: 'Media not found' });
+      return res.status(404).json({ error: 'Không tìm thấy ảnh' });
     }
 
     // Delete from Cloudinary
@@ -216,72 +316,6 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('[Media] DELETE error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ========================
-// CATEGORIES
-// ========================
-
-// GET /api/media/categories — List categories for tenant
-router.get('/categories', async (req, res) => {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('media_categories')
-      .select('*')
-      .eq('tenant_id', req.tenantId)
-      .order('name', { ascending: true });
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/media/categories — Create category
-router.post('/categories', async (req, res) => {
-  try {
-    const { name } = req.body;
-    if (!name?.trim()) {
-      return res.status(400).json({ error: 'Name is required' });
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from('media_categories')
-      .insert({ tenant_id: req.tenantId, name: name.trim() })
-      .select('*')
-      .single();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// DELETE /api/media/categories/:id — Delete category
-router.delete('/categories/:id', async (req, res) => {
-  try {
-    const { error } = await supabaseAdmin
-      .from('media_categories')
-      .delete()
-      .eq('id', req.params.id)
-      .eq('tenant_id', req.tenantId);
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json({ success: true });
-  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

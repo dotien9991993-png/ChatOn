@@ -56,23 +56,23 @@ export default function MediaLibraryPage() {
       } else {
         await api.uploadMediaMultiple(files, filterCat || undefined);
       }
-      showToast(`Upload ${files.length} file thanh cong`);
+      showToast(`Tải lên ${files.length} ảnh thành công`);
       loadMedia();
     } catch (err) {
-      showToast('Upload that bai: ' + (err.response?.data?.error || err.message), 'error');
+      showToast('Tải lên thất bại: ' + (err.response?.data?.error || err.message), 'error');
     } finally {
       setUploading(false);
     }
   }
 
   async function handleDelete(item) {
-    if (!confirm('Xoa anh nay?')) return;
+    if (!confirm('Xóa ảnh này?')) return;
     try {
       await api.deleteMedia(item.id);
-      showToast('Da xoa');
+      showToast('Đã xóa ảnh');
       loadMedia();
     } catch (err) {
-      showToast('Loi xoa: ' + err.message, 'error');
+      showToast('Lỗi xóa: ' + err.message, 'error');
     }
   }
 
@@ -83,27 +83,27 @@ export default function MediaLibraryPage() {
       setCategories([...categories, cat]);
       setNewCatName('');
       setShowCatForm(false);
-      showToast('Da tao danh muc');
+      showToast('Đã tạo danh mục');
     } catch (err) {
-      showToast('Loi: ' + err.message, 'error');
+      showToast('Lỗi: ' + (err.response?.data?.error || err.message), 'error');
     }
   }
 
   async function handleDeleteCategory(catId) {
-    if (!confirm('Xoa danh muc nay?')) return;
+    if (!confirm('Xóa danh mục này?')) return;
     try {
       await api.deleteMediaCategory(catId);
       setCategories(categories.filter(c => c.id !== catId));
       if (filterCat === catId) setFilterCat('');
-      showToast('Da xoa danh muc');
+      showToast('Đã xóa danh mục');
     } catch (err) {
-      showToast('Loi: ' + err.message, 'error');
+      showToast('Lỗi: ' + err.message, 'error');
     }
   }
 
   function copyUrl(url) {
     navigator.clipboard.writeText(url);
-    showToast('Da copy URL');
+    showToast('Đã sao chép URL');
   }
 
   // Drag & drop handlers
@@ -132,8 +132,8 @@ export default function MediaLibraryPage() {
             <Image className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-800">Thu vien anh</h1>
-            <p className="text-xs text-slate-500">{total} file</p>
+            <h1 className="text-lg font-bold text-slate-800">Thư viện ảnh</h1>
+            <p className="text-xs text-slate-500">{total} ảnh &middot; Định dạng: JPG, PNG, GIF, WEBP &middot; Tối đa 10MB</p>
           </div>
         </div>
         <button
@@ -142,13 +142,13 @@ export default function MediaLibraryPage() {
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 transition font-medium disabled:opacity-50"
         >
           <Upload className="w-4 h-4" />
-          {uploading ? 'Dang upload...' : 'Upload'}
+          {uploading ? 'Đang tải lên...' : 'Tải lên'}
         </button>
         <input
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*,video/mp4,video/webm"
+          accept="image/jpeg,image/png,image/gif,image/webp"
           className="hidden"
           onChange={(e) => handleUpload(Array.from(e.target.files))}
         />
@@ -158,14 +158,14 @@ export default function MediaLibraryPage() {
         {/* Category Sidebar */}
         <div className="w-56 border-r border-slate-200 bg-white flex-shrink-0 overflow-y-auto hidden md:block">
           <div className="p-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Danh muc</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Danh mục</p>
             <button
               onClick={() => { setFilterCat(''); setPage(1); }}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
                 !filterCat ? 'bg-blue-50 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              Tat ca
+              Tất cả
             </button>
             {categories.map(cat => (
               <div key={cat.id} className="group flex items-center">
@@ -181,6 +181,7 @@ export default function MediaLibraryPage() {
                 <button
                   onClick={() => handleDeleteCategory(cat.id)}
                   className="p-1 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+                  title="Xóa danh mục"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -192,7 +193,7 @@ export default function MediaLibraryPage() {
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
-                  placeholder="Ten danh muc"
+                  placeholder="Tên danh mục"
                   className="flex-1 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-blue-400"
                   autoFocus
                 />
@@ -207,7 +208,7 @@ export default function MediaLibraryPage() {
                 className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition flex items-center gap-2 mt-1"
               >
                 <FolderPlus className="w-3.5 h-3.5" />
-                Them danh muc
+                Thêm danh mục
               </button>
             )}
           </div>
@@ -222,7 +223,7 @@ export default function MediaLibraryPage() {
               <input
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Tim kiem theo ten file..."
+                placeholder="Tìm kiếm theo tên file..."
                 className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
@@ -237,13 +238,15 @@ export default function MediaLibraryPage() {
             className="flex-1 overflow-y-auto p-4 transition"
           >
             {loading ? (
-              <div className="flex items-center justify-center h-48">
-                <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+              <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+                <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-2" />
+                <p className="text-sm">Đang tải...</p>
               </div>
             ) : media.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-slate-400">
                 <Image className="w-12 h-12 mb-2 opacity-30" />
-                <p className="text-sm">Chua co anh nao. Keo tha hoac bam Upload.</p>
+                <p className="text-sm">Chưa có ảnh nào</p>
+                <p className="text-xs mt-1">Kéo thả hoặc bấm Tải lên để thêm ảnh</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -268,14 +271,14 @@ export default function MediaLibraryPage() {
                       <button
                         onClick={() => copyUrl(item.url)}
                         className="p-1.5 bg-white/90 rounded-lg shadow-sm hover:bg-white text-slate-600 hover:text-blue-600 transition"
-                        title="Copy URL"
+                        title="Sao chép URL"
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDelete(item)}
                         className="p-1.5 bg-white/90 rounded-lg shadow-sm hover:bg-white text-slate-600 hover:text-red-500 transition"
-                        title="Xoa"
+                        title="Xóa"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -289,7 +292,7 @@ export default function MediaLibraryPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="px-4 py-3 border-t border-slate-200 bg-white flex items-center justify-between">
-              <p className="text-xs text-slate-500">Trang {page} / {totalPages} ({total} file)</p>
+              <p className="text-xs text-slate-500">Trang {page} / {totalPages} ({total} ảnh)</p>
               <div className="flex gap-1">
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}

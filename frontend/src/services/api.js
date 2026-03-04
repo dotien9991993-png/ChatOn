@@ -498,6 +498,10 @@ export function createMediaCategory(name) {
   return api.post('/media/categories', { name }).then((res) => res.data);
 }
 
+export function updateMediaCategory(id, name) {
+  return api.put(`/media/categories/${id}`, { name }).then((res) => res.data);
+}
+
 export function deleteMediaCategory(id) {
   return api.delete(`/media/categories/${id}`).then((res) => res.data);
 }
