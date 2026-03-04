@@ -106,8 +106,106 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
       }
       if (!event.message) continue;
 
-      // Fix 2: Skip echo messages (page's own sent messages)
-      if (event.message.is_echo) continue;
+      // Handle echo messages (outgoing from Page)
+      if (event.message.is_echo) {
+        // Skip if sent by our own app (already saved via POST /api/messages/send)
+        if (event.message.app_id && String(event.message.app_id) === String(config.fb.appId)) continue;
+
+        // Message sent from Facebook Page inbox → save as agent message
+        try {
+          const recipientId = event.recipient.id;
+          const echoText = event.message.text;
+          let echoMediaUrl = null;
+          let echoType = 'text';
+
+          if (event.message.attachments) {
+            const imgAttach = event.message.attachments.find(a => a.type === 'image');
+            if (imgAttach?.payload?.url) {
+              echoMediaUrl = imgAttach.payload.url;
+              echoType = 'image';
+            }
+          }
+
+          if (!echoText && !echoMediaUrl) continue;
+
+          // Find customer by external_id = recipientId
+          const { data: echoCust } = await supabaseAdmin
+            .from('customers')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .eq('channel_type', 'facebook')
+            .eq('external_id', recipientId)
+            .limit(1)
+            .single();
+
+          if (!echoCust) { continue; }
+
+          // Find conversation
+          const { data: echoConv } = await supabaseAdmin
+            .from('conversations')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .eq('customer_id', echoCust.id)
+            .limit(1)
+            .single();
+
+          if (!echoConv) { continue; }
+
+          // Dedup: skip if mid already processed
+          const echoMid = event.message.mid;
+          if (echoMid && processedMids.has(echoMid)) continue;
+          if (echoMid) {
+            processedMids.set(echoMid, Date.now());
+            setTimeout(() => processedMids.delete(echoMid), DEDUP_TTL);
+          }
+
+          // Insert as agent message
+          const { data: echoMsg, error: echoMsgErr } = await supabaseAdmin
+            .from('messages')
+            .insert({
+              conversation_id: echoConv.id,
+              sender: 'agent',
+              text: echoText || (echoMediaUrl ? '[Hình ảnh]' : null),
+              type: echoType,
+              media_url: echoMediaUrl || null,
+            })
+            .select('*')
+            .single();
+
+          if (echoMsgErr) {
+            console.error('[Webhook] Echo insert error:', echoMsgErr.message);
+            continue;
+          }
+
+          // Update conversation last_message
+          await supabaseAdmin
+            .from('conversations')
+            .update({
+              last_message: echoText || '[Hình ảnh]',
+              last_message_at: echoMsg.created_at,
+            })
+            .eq('id', echoConv.id);
+
+          // Emit socket event
+          io.to(`tenant:${tenantId}`).emit('message_sent', {
+            conversationId: echoConv.id,
+            message: {
+              id: echoMsg.id,
+              from: 'agent',
+              text: echoMsg.text,
+              type: echoMsg.type,
+              media_url: echoMsg.media_url || null,
+              timestamp: echoMsg.created_at,
+              status: 'sent',
+            },
+          });
+
+          console.log(`[Webhook] Echo saved → conversation ${echoConv.id}`);
+        } catch (echoErr) {
+          console.error('[Webhook] Echo handling error:', echoErr.message);
+        }
+        continue;
+      }
 
       // Fix 3: Dedup — skip already-processed message IDs
       const mid = event.message.mid;

@@ -21,6 +21,11 @@ async function getUserProfile(senderId, token) {
 
   const accessToken = token || config.fb.pageAccessToken || '';
 
+  if (!accessToken || accessToken.length < 30) {
+    console.warn(`[FB] getUserProfile: No valid token for senderId ${senderId} (token length: ${accessToken.length})`);
+    return { name: null, avatar: null };
+  }
+
   try {
     const res = await axios.get(`${GRAPH}/${senderId}`, {
       params: {
@@ -29,13 +34,18 @@ async function getUserProfile(senderId, token) {
       },
     });
     const profile = {
-      name: `${res.data.first_name || ''} ${res.data.last_name || ''}`.trim(),
+      name: `${res.data.first_name || ''} ${res.data.last_name || ''}`.trim() || null,
       avatar: res.data.profile_pic || null,
     };
-    profileCache.set(senderId, { profile, ts: Date.now() });
+    if (profile.name) {
+      profileCache.set(senderId, { profile, ts: Date.now() });
+    }
+    console.log(`[FB] Profile fetched for ${senderId}: name="${profile.name}", avatar=${profile.avatar ? 'yes' : 'no'}`);
     return profile;
   } catch (err) {
-    console.error('[FB] Lỗi lấy profile:', err.response?.data || err.message);
+    const errData = err.response?.data?.error;
+    console.error(`[FB] Lỗi lấy profile ${senderId}:`, errData?.message || err.message, errData?.code ? `(code: ${errData.code})` : '');
+    // Don't cache failures — allow retry on next message
     return { name: null, avatar: null };
   }
 }

@@ -103,7 +103,19 @@ export default function ChatPage() {
 
   async function sendMessage(text, imageUrl) {
     if (!activeConvId) return;
-    await api.sendMessage(activeConvId, text || null, imageUrl || null);
+    const result = await api.sendMessage(activeConvId, text || null, imageUrl || null);
+    // Optimistically add sent message to UI (socket event will dedup via id check)
+    if (result?.message) {
+      setMessages((prev) =>
+        prev.find((m) => m.id === result.message.id) ? prev : [...prev, result.message]
+      );
+      setConversations((prev) =>
+        prev.map((c) => c.id === activeConvId
+          ? { ...c, lastMessage: result.message.text, lastMessageAt: result.message.timestamp, messageCount: (c.messageCount || 0) + 1 }
+          : c
+        )
+      );
+    }
   }
 
   async function updateStatus(status) {

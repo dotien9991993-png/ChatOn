@@ -321,16 +321,16 @@ router.get('/export/csv', async (req, res) => {
   }
 });
 
-// POST /api/customers/update-names — Backfill Facebook profile names for customers with default name
+// POST /api/customers/update-names — Backfill Facebook profile (name + avatar) for customers with default/missing info
 router.post('/update-names', async (req, res) => {
   try {
-    // Find all Facebook customers with missing/default names for this tenant
+    // Find all Facebook customers with missing name, default name, or missing avatar
     const { data: customers, error } = await supabaseAdmin
       .from('customers')
       .select('id, external_id, tenant_id, name, avatar')
       .eq('tenant_id', req.tenantId)
       .eq('channel_type', 'facebook')
-      .or('name.is.null,name.eq.Khách hàng');
+      .or('name.is.null,name.eq.Khách hàng,avatar.is.null');
 
     if (error) {
       return res.status(500).json({ error: error.message });
@@ -340,29 +340,48 @@ router.post('/update-names', async (req, res) => {
       return res.json({ updated: 0, message: 'Không có khách hàng cần cập nhật' });
     }
 
-    // Get Facebook channel token for this tenant
-    const token = await fbService.getChannelToken(req.tenantId);
-    if (!token) {
+    // Get all connected Facebook page tokens for this tenant
+    const { data: channels } = await supabaseAdmin
+      .from('channels')
+      .select('page_id, page_access_token')
+      .eq('tenant_id', req.tenantId)
+      .eq('type', 'facebook')
+      .eq('connected', true);
+
+    if (!channels || channels.length === 0) {
       return res.status(400).json({ error: 'Chưa kết nối Facebook Page' });
     }
 
     const results = [];
     for (const c of customers) {
-      try {
-        const profile = await fbService.getUserProfile(c.external_id, token);
-        if (profile.name) {
-          await supabaseAdmin
-            .from('customers')
-            .update({ name: profile.name, avatar: profile.avatar || c.avatar })
-            .eq('id', c.id);
-          results.push({ id: c.id, name: profile.name });
+      // Try each page token until profile is fetched
+      for (const channel of channels) {
+        try {
+          const profile = await fbService.getUserProfile(c.external_id, channel.page_access_token);
+          if (profile.name || profile.avatar) {
+            const updates = {};
+            if (profile.name && (!c.name || c.name === 'Khách hàng')) {
+              updates.name = profile.name;
+            }
+            if (profile.avatar && !c.avatar) {
+              updates.avatar = profile.avatar;
+            }
+            if (Object.keys(updates).length > 0) {
+              await supabaseAdmin
+                .from('customers')
+                .update(updates)
+                .eq('id', c.id);
+              results.push({ id: c.id, ...updates });
+            }
+            break; // Got profile, no need to try other tokens
+          }
+        } catch (err) {
+          console.error(`[Customers] Failed to update profile for ${c.id} with page ${channel.page_id}:`, err.message);
         }
-      } catch (err) {
-        console.error(`[Customers] Failed to update name for ${c.id}:`, err.message);
       }
     }
 
-    console.log(`[Customers] Backfilled ${results.length}/${customers.length} customer names`);
+    console.log(`[Customers] Backfilled ${results.length}/${customers.length} customer profiles`);
     res.json({ updated: results.length, total: customers.length, results });
   } catch (err) {
     console.error('[Customers] POST /update-names error:', err.message);
