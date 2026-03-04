@@ -146,29 +146,6 @@ app.use('/webhook/zalo', webhookZaloRoutes);
 app.use('/auth/zalo', authZaloRoutes);
 app.use('/api/livechat', livechatRoutes);
 
-// Debug: test website DB connection (no auth required)
-app.get('/api/website-products/test', async (_req, res) => {
-  try {
-    const { websiteSupabase, websiteTenantId } = require('./services/websiteSupabase');
-    console.log('=== WEBSITE PRODUCTS TEST ===');
-    console.log('WEBSITE_SUPABASE_URL:', process.env.WEBSITE_SUPABASE_URL ? 'CÓ' : 'THIẾU');
-    console.log('WEBSITE_SUPABASE_SERVICE_KEY:', process.env.WEBSITE_SUPABASE_SERVICE_KEY ? 'CÓ (' + process.env.WEBSITE_SUPABASE_SERVICE_KEY.length + ' chars)' : 'THIẾU');
-    console.log('WEBSITE_TENANT_ID:', websiteTenantId);
-
-    const { data, error } = await websiteSupabase
-      .from('products')
-      .select('*')
-      .eq('tenant_id', websiteTenantId)
-      .limit(3);
-
-    const columns = data?.[0] ? Object.keys(data[0]) : [];
-    console.log('Test result:', { count: data?.length, error, columns });
-    res.json({ data, error, columns });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // Serve widget static files
 app.use('/widget', express.static(path.join(__dirname, '../frontend/public/widget')));
 
