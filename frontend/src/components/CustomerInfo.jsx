@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { updateConversation, getTeamMembers, assignConversation, getWebsiteOrders } from '../services/api';
-import { User, Phone, StickyNote, MessageSquare, Calendar, X, ShoppingBag } from 'lucide-react';
+import { User, Phone, StickyNote, MessageSquare, Calendar, X, ShoppingBag, ChevronLeft } from 'lucide-react';
 
 /**
  * Panel thông tin khách hàng — cột phải
  * Avatar, tên, Facebook ID, SĐT, ghi chú, trạng thái, thống kê
  */
-export default function CustomerInfo({ conversation, onClose, onUpdated }) {
+export default function CustomerInfo({ conversation, onClose, onBack, onUpdated }) {
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -57,21 +57,9 @@ export default function CustomerInfo({ conversation, onClose, onUpdated }) {
 
   if (!conversation) return null;
 
-  return (
-    <div className="flex flex-col h-full bg-white border-l border-slate-200">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <User className="w-3.5 h-3.5 text-blue-600" />
-          <h3 className="text-xs font-semibold text-blue-600 uppercase tracking-wider">
-            Thông tin khách
-          </h3>
-        </div>
-        <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-700 transition">
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
+  // Shared content (used by both mobile and desktop)
+  const infoContent = (
+    <>
       <div className="flex-1 overflow-y-auto">
         {/* Avatar + tên */}
         <div className="flex flex-col items-center py-5 px-4 border-b border-slate-200">
@@ -247,6 +235,41 @@ export default function CustomerInfo({ conversation, onClose, onUpdated }) {
       <div className="px-4 py-2 border-t border-slate-200 text-center">
         {saving && <span className="text-[11px] text-blue-600">Đang lưu...</span>}
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile: full screen với back button */}
+      {onBack && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col bg-white">
+          {/* Mobile header */}
+          <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3 flex-shrink-0 safe-area-top">
+            <button onClick={onBack} className="text-slate-600 hover:text-slate-900 transition">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h3 className="text-sm font-semibold text-slate-800">Thông tin khách hàng</h3>
+          </div>
+          {infoContent}
+        </div>
+      )}
+
+      {/* Desktop: giữ nguyên layout cũ */}
+      <div className="hidden md:flex flex-col h-full bg-white border-l border-slate-200">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <User className="w-3.5 h-3.5 text-blue-600" />
+            <h3 className="text-xs font-semibold text-blue-600 uppercase tracking-wider">
+              Thông tin khách
+            </h3>
+          </div>
+          <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-700 transition">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        {infoContent}
+      </div>
+    </>
   );
 }

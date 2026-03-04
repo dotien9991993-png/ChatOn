@@ -67,7 +67,7 @@ function MobileBottomNav() {
 /**
  * App Shell — Sidebar + Content area
  */
-function AppShell({ children }) {
+function AppShell({ children, hideHeader = false }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -96,17 +96,19 @@ function AppShell({ children }) {
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile header */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="text-slate-600 hover:text-slate-900 transition"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-          <span className="text-sm font-semibold text-slate-800">ChatOn</span>
-          <div className="w-6" />
-        </div>
+        {/* Mobile header (hidden on chat page to avoid duplicate) */}
+        {!hideHeader && (
+          <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="text-slate-600 hover:text-slate-900 transition"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <span className="text-sm font-semibold text-slate-800">ChatOn</span>
+            <div className="w-6" />
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -150,7 +152,7 @@ export default function App() {
             path="/chat"
             element={
               <ProtectedRoute>
-                <AppShell>
+                <AppShell hideHeader>
                   <ChatPage />
                 </AppShell>
               </ProtectedRoute>

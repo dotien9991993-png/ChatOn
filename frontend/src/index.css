@@ -93,3 +93,8 @@ textarea {
 .safe-area-bottom {
   padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
+
+/* Safe area for mobile top (notch) */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}

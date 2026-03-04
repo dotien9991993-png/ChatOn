@@ -95,11 +95,11 @@ export default function CreateOrderPanel({ conversation, onClose }) {
 
   return (
     <>
-      {/* Overlay */}
-      <div className="absolute inset-0 z-40 bg-black/30" onClick={onClose} />
+      {/* Overlay (chỉ hiện trên desktop) */}
+      <div className="hidden md:block absolute inset-0 z-40 bg-black/30" onClick={onClose} />
 
-      {/* Panel */}
-      <div className="absolute top-0 right-0 bottom-0 z-50 w-[420px] max-w-full bg-white border-l border-slate-200 shadow-2xl flex flex-col animate-slide-in-right">
+      {/* Panel — full screen mobile, slide panel desktop */}
+      <div className="fixed inset-0 z-50 md:absolute md:top-0 md:right-0 md:bottom-0 md:left-auto md:w-[420px] md:max-w-full bg-white border-l border-slate-200 shadow-2xl flex flex-col animate-slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">

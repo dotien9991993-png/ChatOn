@@ -4,7 +4,7 @@ import MessageInput from './MessageInput';
 import CreateOrderPanel from './CreateOrderPanel';
 import { formatDateDivider } from '../utils/formatTime';
 import * as api from '../services/api';
-import { Bot, Package, CheckCircle, AlertTriangle, RotateCcw, Info, Menu } from 'lucide-react';
+import { Bot, Package, CheckCircle, AlertTriangle, RotateCcw, Info, Menu, ChevronLeft } from 'lucide-react';
 
 /**
  * Vùng chat chính — header + tin nhắn + input
@@ -14,6 +14,7 @@ export default function ChatArea({
   conversation,
   messages,
   onSend,
+  onBack,
   onOpenSidebar,
   onOpenCustomer,
   onUpdateStatus,
@@ -60,10 +61,16 @@ export default function ChatArea({
     <div className="flex-1 flex flex-col bg-white min-w-0 min-h-0 relative">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-200 bg-white flex-shrink-0">
-        {/* Nút mở sidebar (mobile) */}
-        <button onClick={onOpenSidebar} className="md:hidden text-slate-600 hover:text-slate-900 transition">
-          <Menu className="w-5 h-5" />
-        </button>
+        {/* Nút Back (mobile) hoặc hamburger */}
+        {onBack ? (
+          <button onClick={onBack} className="md:hidden text-slate-600 hover:text-slate-900 transition">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        ) : (
+          <button onClick={onOpenSidebar} className="md:hidden text-slate-600 hover:text-slate-900 transition">
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Avatar + tên */}
         {conversation.avatar ? (
@@ -113,19 +120,19 @@ export default function ChatArea({
             <span className="hidden sm:inline">Tạo đơn</span>
           </button>
 
-          {/* Status buttons */}
+          {/* Status buttons (hidden on mobile) */}
           {conversation.status === 'active' && (
             <>
               <button
                 onClick={() => onUpdateStatus('resolved')}
-                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 transition"
+                className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 transition"
               >
                 <CheckCircle className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Đã xong</span>
               </button>
               <button
                 onClick={() => onUpdateStatus('spam')}
-                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition"
+                className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition"
               >
                 <AlertTriangle className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Spam</span>
@@ -135,14 +142,14 @@ export default function ChatArea({
           {conversation.status !== 'active' && (
             <button
               onClick={() => onUpdateStatus('active')}
-              className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition"
+              className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Mở lại</span>
             </button>
           )}
 
-          {/* Nút info (mobile) */}
+          {/* Nút info (mobile + tablet, ẩn trên desktop lg+) */}
           <button onClick={onOpenCustomer} className="lg:hidden text-slate-600 hover:text-blue-600 ml-1 transition">
             <Info className="w-5 h-5" />
           </button>
