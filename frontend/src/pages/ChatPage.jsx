@@ -96,6 +96,18 @@ export default function ChatPage() {
       setMessages(data.messages || []);
       api.markAsRead(convId).catch(() => {});
       setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, unread: 0, messageCount: data.messageCount } : c)));
+
+      // Background sync from Facebook — reload if new messages found
+      api.syncMessages(convId).then((syncResult) => {
+        if (syncResult?.newMessages > 0 && activeConvIdRef.current === convId) {
+          api.getConversation(convId).then((freshData) => {
+            if (activeConvIdRef.current === convId) {
+              setMessages(freshData.messages || []);
+              setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, messageCount: freshData.messageCount } : c)));
+            }
+          }).catch(() => {});
+        }
+      }).catch(() => {});
     } catch (err) {
       console.error('Lỗi load messages:', err);
     }

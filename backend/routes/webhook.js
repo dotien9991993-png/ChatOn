@@ -168,6 +168,7 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
               text: echoText || (echoMediaUrl ? '[Hình ảnh]' : null),
               type: echoType,
               media_url: echoMediaUrl || null,
+              facebook_mid: echoMid || null,
             })
             .select('*')
             .single();
@@ -375,6 +376,7 @@ router.post('/', verifyWebhookSignature, async (req, res) => {
             text,
             type: inboundMediaUrl ? 'image' : 'text',
             media_url: inboundMediaUrl || null,
+            facebook_mid: mid || null,
           })
           .select('*')
           .single();

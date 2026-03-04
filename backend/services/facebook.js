@@ -397,6 +397,59 @@ async function getChannelToken(tenantId, pageId) {
   return data?.page_access_token || null;
 }
 
+/**
+ * Get Facebook conversation ID for a page + PSID pair
+ */
+async function getConversation(pageId, psid, token) {
+  try {
+    const res = await axios.get(`${GRAPH}/${pageId}/conversations`, {
+      params: {
+        user_id: psid,
+        access_token: token,
+      },
+    });
+    const convs = res.data.data || [];
+    return convs.length > 0 ? convs[0].id : null;
+  } catch (err) {
+    console.error('[FB] getConversation error:', err.response?.data?.error?.message || err.message);
+    return null;
+  }
+}
+
+/**
+ * Get all messages from a Facebook conversation (with cursor pagination, max 2000)
+ */
+async function getConversationMessages(fbConvId, token) {
+  const allMessages = [];
+  let url = `${GRAPH}/${fbConvId}/messages`;
+  let params = {
+    fields: 'id,message,from,to,created_time,attachments',
+    limit: 100,
+    access_token: token,
+  };
+  const MAX_MESSAGES = 2000;
+
+  try {
+    while (allMessages.length < MAX_MESSAGES) {
+      const res = await axios.get(url, { params });
+      const messages = res.data.data || [];
+      if (messages.length === 0) break;
+      allMessages.push(...messages);
+
+      const nextUrl = res.data.paging?.next;
+      if (!nextUrl) break;
+
+      // Use the full next URL directly (contains cursor)
+      url = nextUrl;
+      params = {}; // next URL already has all params
+    }
+  } catch (err) {
+    console.error('[FB] getConversationMessages error:', err.response?.data?.error?.message || err.message);
+  }
+
+  return allMessages.slice(0, MAX_MESSAGES);
+}
+
 module.exports = {
   getUserProfile,
   sendMessage,
@@ -412,4 +465,6 @@ module.exports = {
   unsubscribePageWebhook,
   debugToken,
   getChannelToken,
+  getConversation,
+  getConversationMessages,
 };

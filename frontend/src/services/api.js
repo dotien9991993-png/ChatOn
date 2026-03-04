@@ -28,6 +28,10 @@ export function getConversation(id) {
   return api.get(`/conversations/${id}`).then((res) => res.data);
 }
 
+export function syncMessages(conversationId) {
+  return api.get(`/conversations/${conversationId}/sync-messages`).then((res) => res.data);
+}
+
 export function sendMessage(conversationId, text, imageUrl) {
   return api.post('/messages/send', { conversationId, text, imageUrl }).then((res) => res.data);
 }

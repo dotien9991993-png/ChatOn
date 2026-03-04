@@ -64,6 +64,7 @@ router.post('/send', async (req, res) => {
 
     // 3. Send via channel API (skip if no valid token — still save message locally)
     let fbSent = false;
+    let fbMessageId = null;
     if (pageAccessToken && pageAccessToken !== 'paste_your_token_here' && pageAccessToken.length > 30) {
       if (conv.channel === 'zalo') {
         const zaloService = require('../services/zalo');
@@ -90,6 +91,7 @@ router.post('/send', async (req, res) => {
         if (imageUrl) {
           const imgResult = await fbService.sendImageWithToken(recipientId, imageUrl, pageAccessToken);
           if (!imgResult.success) console.error('[Messages] Facebook sendImage failed:', imgResult.error);
+          else if (imgResult.messageId) fbMessageId = imgResult.messageId;
         }
         if (text) {
           const fbResult = await fbService.sendMessageWithToken(recipientId, text, pageAccessToken);
@@ -97,6 +99,7 @@ router.post('/send', async (req, res) => {
             console.error('[Messages] Facebook send failed:', fbResult.error);
           } else {
             fbSent = true;
+            if (fbResult.messageId) fbMessageId = fbResult.messageId;
           }
         } else {
           fbSent = true; // image-only message
@@ -117,6 +120,7 @@ router.post('/send', async (req, res) => {
         text: text || null,
         type: imageUrl ? 'image' : 'text',
         media_url: imageUrl || null,
+        facebook_mid: fbMessageId,
       })
       .select('*')
       .single();
