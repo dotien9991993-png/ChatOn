@@ -118,7 +118,6 @@ router.post('/', async (req, res) => {
         customer_name: customer_name || '',
         customer_phone,
         shipping_address: customer_address || '',
-        items: orderItems,
         subtotal,
         total_amount: subtotal,
         shipping_fee: 0,
@@ -139,6 +138,26 @@ router.post('/', async (req, res) => {
     if (wsError) {
       console.error('[WebsiteOrders] Website DB insert error:', wsError.message);
       return res.status(500).json({ error: 'Lỗi tạo đơn trên website: ' + wsError.message });
+    }
+
+    // 1b. Insert order items vào bảng order_items
+    const orderItemRows = orderItems.map((i) => ({
+      order_id: websiteOrder.id,
+      tenant_id: websiteTenantId,
+      product_id: i.product_id,
+      product_name: i.product_name,
+      quantity: i.quantity,
+      unit_price: i.price,
+      subtotal: i.subtotal,
+    }));
+
+    const { error: itemsError } = await websiteSupabase
+      .from('order_items')
+      .insert(orderItemRows);
+
+    if (itemsError) {
+      console.error('[WebsiteOrders] order_items insert error:', itemsError.message);
+      // Đơn đã tạo nhưng items lỗi — log nhưng không fail
     }
 
     // 2. Lưu bản copy vào ChatOn DB
