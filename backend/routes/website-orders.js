@@ -6,6 +6,12 @@ const { supabaseAdmin } = require('../config/supabase');
 /**
  * CRUD đơn hàng trên website DB
  * Đồng thời lưu bản copy vào ChatOn DB
+ *
+ * Website DB orders columns:
+ * order_number, customer_name, customer_phone, shipping_address,
+ * subtotal, total_amount, shipping_fee, discount_amount,
+ * payment_method, payment_status, paid_amount,
+ * note, source, channel, order_source, order_type, created_by, tenant_id
  */
 
 // GET /api/website-orders — Danh sách đơn hàng
@@ -27,7 +33,7 @@ router.get('/', async (req, res) => {
       query = query.eq('customer_phone', customer_phone);
     }
     if (search) {
-      query = query.or(`order_code.ilike.%${search}%,customer_name.ilike.%${search}%,customer_phone.ilike.%${search}%`);
+      query = query.or(`order_number.ilike.%${search}%,customer_name.ilike.%${search}%,customer_phone.ilike.%${search}%`);
     }
 
     query = query.range(offset, offset + parseInt(limit) - 1);
@@ -36,8 +42,15 @@ router.get('/', async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
 
+    // Map to frontend format
+    const mapped = (orders || []).map((o) => ({
+      ...o,
+      order_code: o.order_number,
+      total: o.total_amount,
+    }));
+
     res.json({
-      orders: orders || [],
+      orders: mapped,
       total: count || 0,
       page: parseInt(page),
       limit: parseInt(limit),
@@ -59,7 +72,12 @@ router.get('/:id', async (req, res) => {
       .single();
 
     if (error || !order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
-    res.json(order);
+
+    res.json({
+      ...order,
+      order_code: order.order_number,
+      total: order.total_amount,
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -77,8 +95,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Thiếu số điện thoại' });
     }
 
-    // Generate order code
-    const orderCode = `CO-${Date.now().toString().slice(-6)}`;
+    // Generate order number
+    const orderNumber = `CO-${Date.now().toString().slice(-6)}`;
 
     // Calculate items
     const orderItems = items.map((i) => ({
@@ -88,21 +106,30 @@ router.post('/', async (req, res) => {
       price: i.price || 0,
       subtotal: (i.quantity || 1) * (i.price || 0),
     }));
-    const total = orderItems.reduce((sum, i) => sum + i.subtotal, 0);
+    const subtotal = orderItems.reduce((sum, i) => sum + i.subtotal, 0);
 
-    // 1. Insert vào website DB
+    // 1. Insert vào website DB (dùng đúng tên cột website)
     const { data: websiteOrder, error: wsError } = await websiteSupabase
       .from('orders')
       .insert({
         tenant_id: websiteTenantId,
-        order_code: orderCode,
+        order_number: orderNumber,
+        order_type: 'sale',
         customer_name: customer_name || '',
         customer_phone,
-        customer_address: customer_address || '',
+        shipping_address: customer_address || '',
         items: orderItems,
-        total,
+        subtotal,
+        total_amount: subtotal,
+        shipping_fee: 0,
+        discount_amount: 0,
+        payment_method: 'cod',
+        payment_status: 'unpaid',
+        paid_amount: 0,
         note: note || '',
         source: 'chaton',
+        order_source: 'chaton',
+        channel: 'messenger',
         created_by: 'agent',
         status: 'pending',
       })
@@ -143,14 +170,14 @@ router.post('/', async (req, res) => {
       .from('orders')
       .insert({
         tenant_id: req.tenantId,
-        order_code: orderCode,
+        order_code: orderNumber,
         conversation_id: conversation_id || null,
         customer_id: customerId,
         customer_name: customer_name || '',
         customer_phone,
         customer_address: customer_address || '',
         items: orderItems,
-        total,
+        total: subtotal,
         note: note || '',
         source: 'website',
         channel_type: channelType || 'facebook',
@@ -163,7 +190,7 @@ router.post('/', async (req, res) => {
     // 3. Gửi tin nhắn xác nhận trong chat
     if (conversation_id) {
       const itemsSummary = orderItems.map((i) => `${i.product_name} x${i.quantity}`).join(', ');
-      const confirmText = `✅ Đơn ${orderCode} đã tạo trên website!\n📦 ${itemsSummary}\n💰 Tổng: ${total.toLocaleString('vi-VN')}đ\n📍 Giao: ${customer_address || 'Chưa có'}\nĐơn đã được đẩy sang website bán hàng 🎉`;
+      const confirmText = `✅ Đơn ${orderNumber} đã tạo trên website!\n📦 ${itemsSummary}\n💰 Tổng: ${subtotal.toLocaleString('vi-VN')}đ\n📍 Giao: ${customer_address || 'Chưa có'}\nĐơn đã được đẩy sang website bán hàng 🎉`;
 
       await supabaseAdmin.from('messages').insert({
         conversation_id,
@@ -177,14 +204,19 @@ router.post('/', async (req, res) => {
     const io = req.app.get('io');
     io.to(`tenant:${req.tenantId}`).emit('new_website_order', {
       id: websiteOrder.id,
-      order_code: orderCode,
-      total,
+      order_code: orderNumber,
+      total: subtotal,
       items: orderItems,
       customer_name,
       customer_phone,
     });
 
-    res.json(websiteOrder);
+    // Return with mapped fields for frontend
+    res.json({
+      ...websiteOrder,
+      order_code: websiteOrder.order_number,
+      total: websiteOrder.total_amount,
+    });
   } catch (err) {
     console.error('[WebsiteOrders] POST / error:', err.message);
     res.status(500).json({ error: 'Server error' });
