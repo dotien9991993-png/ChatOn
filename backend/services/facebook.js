@@ -213,7 +213,7 @@ async function sendInvoice(recipientId, order, pageAccessToken) {
 function getOAuthUrl(state) {
   const redirectUri = `${config.backendUrl}/auth/facebook/callback`;
   const scopes = 'pages_show_list,pages_messaging,pages_manage_metadata,pages_read_engagement,pages_manage_posts,pages_manage_engagement';
-  const url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${config.fb.appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}`;
+  const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${config.fb.appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}`;
 
   console.log('[FB Service] getOAuthUrl():');
   console.log('[FB Service]   appId:', config.fb.appId || '*** MISSING ***');

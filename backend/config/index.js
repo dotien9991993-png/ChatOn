@@ -12,7 +12,7 @@ module.exports = {
     appSecret: process.env.FB_APP_SECRET || '',
     verifyToken: process.env.FB_VERIFY_TOKEN || 'hoangnam_verify_2024',
     pageAccessToken: process.env.FB_PAGE_ACCESS_TOKEN || '',
-    graphApiUrl: 'https://graph.facebook.com/v18.0',
+    graphApiUrl: 'https://graph.facebook.com/v21.0',
   },
   zalo: {
     appId: process.env.ZALO_APP_ID || '',
