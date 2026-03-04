@@ -33,6 +33,8 @@ const dripCampaignRoutes = require('./routes/drip-campaigns');
 const segmentRoutes = require('./routes/segments');
 const reportRoutes = require('./routes/reports');
 const mediaRoutes = require('./routes/media');
+const websiteProductRoutes = require('./routes/website-products');
+const websiteOrderRoutes = require('./routes/website-orders');
 const path = require('path');
 const errorHandler = require('./middleware/errorHandler');
 const authMiddleware = require('./middleware/auth');
@@ -166,6 +168,8 @@ app.use('/api/drip-campaigns', authMiddleware, dripCampaignRoutes);
 app.use('/api/segments', authMiddleware, segmentRoutes);
 app.use('/api/reports', authMiddleware, reportRoutes);
 app.use('/api/media', authMiddleware, mediaRoutes);
+app.use('/api/website-products', authMiddleware, websiteProductRoutes);
+app.use('/api/website-orders', authMiddleware, websiteOrderRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

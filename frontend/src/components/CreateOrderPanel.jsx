@@ -28,7 +28,7 @@ export default function CreateOrderPanel({ conversation, onClose }) {
     searchTimeout.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const results = await api.searchProductsQuick(q);
+        const results = await api.searchWebsiteProducts(q);
         setSearchResults(results);
       } catch (err) {
         console.error('Search error:', err);
@@ -71,7 +71,7 @@ export default function CreateOrderPanel({ conversation, onClose }) {
 
     setSaving(true);
     try {
-      await api.createOrderFromChat({
+      await api.createWebsiteOrder({
         conversation_id: conversation.id,
         customer_name: customerName,
         customer_phone: customerPhone,
@@ -185,10 +185,10 @@ export default function CreateOrderPanel({ conversation, onClose }) {
             disabled={saving || items.length === 0}
             className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
-            {saving ? 'Đang tạo...' : <span className="flex items-center justify-center gap-2"><CheckCircle className="w-4 h-4" /> Tạo đơn & Đẩy sang OMS</span>}
+            {saving ? 'Đang tạo...' : <span className="flex items-center justify-center gap-2"><CheckCircle className="w-4 h-4" /> Tạo đơn & Đẩy sang Website</span>}
           </button>
           <p className="text-[10px] text-slate-400 text-center mt-2">
-            Đơn sẽ được đẩy sang hệ thống kho để xử lý tiếp.
+            Đơn sẽ được tạo trên website bán hàng.
           </p>
         </div>
 

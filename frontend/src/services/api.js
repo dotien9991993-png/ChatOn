@@ -154,6 +154,32 @@ export function syncInventory() {
   return api.get('/products/sync-inventory').then((res) => res.data);
 }
 
+// === Website Products & Orders ===
+
+export function searchWebsiteProducts(q) {
+  return api.get('/website-products/search', { params: { q } }).then((res) => res.data);
+}
+
+export function getWebsiteProducts(params = {}) {
+  return api.get('/website-products', { params }).then((res) => res.data);
+}
+
+export function createWebsiteOrder(data) {
+  return api.post('/website-orders', data).then((res) => res.data);
+}
+
+export function getWebsiteOrders(params = {}) {
+  return api.get('/website-orders', { params }).then((res) => res.data);
+}
+
+export function getWebsiteOrder(id) {
+  return api.get(`/website-orders/${id}`).then((res) => res.data);
+}
+
+export function cancelWebsiteOrder(id) {
+  return api.post(`/website-orders/${id}/cancel`).then((res) => res.data);
+}
+
 // === Quick Replies ===
 
 export function getQuickReplies() {
